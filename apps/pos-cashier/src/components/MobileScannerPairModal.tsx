@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { IconCamera, IconPhone, IconEnter } from './icons';
+import { getCounterRoomId } from '../utils/scannerSyncBus';
 
 interface MobileScannerPairModalProps {
   isOpen: boolean;
@@ -21,16 +22,17 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
   const [wifiIp, setWifiIp] = useState<string>('192.168.29.170'); // Local Wi-Fi IP
 
   // Calculate actual reachable scanner URL
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://localhost:5173';
   const port = typeof window !== 'undefined' && window.location.port ? window.location.port : '5173';
-  const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
+  const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
   const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const roomId = getCounterRoomId();
 
-  const localHostUrl = `${origin}${path}?mode=mobile-scanner`;
-  const localWifiUrl = `${protocol}//${wifiIp}:${port}${path}?mode=mobile-scanner`;
+  const localHostUrl = `${origin}${path}?mode=mobile-scanner&room=${roomId}`;
+  const localWifiUrl = `${protocol}//${wifiIp}:${port}${path}?mode=mobile-scanner&room=${roomId}`;
 
   const activeUrl = connectionMode === 'custom' && customUrl.trim()
-    ? (customUrl.includes('?') ? customUrl : `${customUrl}?mode=mobile-scanner`)
+    ? (customUrl.includes('?') ? `${customUrl}&room=${roomId}` : `${customUrl}?mode=mobile-scanner&room=${roomId}`)
     : localWifiUrl;
 
   useEffect(() => {

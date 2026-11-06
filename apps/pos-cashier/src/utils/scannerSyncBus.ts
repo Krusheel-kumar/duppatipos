@@ -17,7 +17,17 @@ export interface ScannedBarcodePayload {
 
 const CHANNEL_NAME = 'krunnex_mobile_scanner_bus';
 const STORAGE_KEY = 'krunnex_scanned_barcode_event';
-const DEFAULT_COUNTER_ROOM = 'krn-counter-flagship-1';
+export function getCounterRoomId(): string {
+  if (typeof window === 'undefined') return 'krn-counter-1';
+  let roomId = window.sessionStorage.getItem('krn_pos_counter_room_id');
+  if (!roomId) {
+    roomId = 'krn-pos-' + Math.random().toString(36).substring(2, 8);
+    window.sessionStorage.setItem('krn_pos_counter_room_id', roomId);
+  }
+  return roomId;
+}
+
+const DEFAULT_COUNTER_ROOM = getCounterRoomId();
 
 // BroadcastChannel instance (supported in all modern desktop & mobile browsers)
 let channel: BroadcastChannel | null = null;
@@ -40,10 +50,14 @@ let activeCounterPeer: Peer | null = null;
  * Initialize WebRTC Host on the Counter PC
  */
 export function initCounterWebRtcHost(
-  roomId: string = DEFAULT_COUNTER_ROOM,
-  onReceived: (payload: ScannedBarcodePayload) => void
+  roomId?: string,
+  onReceived: (payload: ScannedBarcodePayload) => void = () => {}
 ): () => void {
+  const targetRoom = roomId || getCounterRoomId();
   try {
+    if (activeCounterPeer && !activeCounterPeer.destroyed && activeCounterPeer.id === targetRoom) {
+      return () => {};
+    }
     if (activeCounterPeer) {
       try {
         activeCounterPeer.destroy();
@@ -52,7 +66,7 @@ export function initCounterWebRtcHost(
       }
     }
 
-    const peer = new Peer(roomId, {
+    const peer = new Peer(targetRoom, {
       debug: 0,
     });
     activeCounterPeer = peer;
@@ -68,9 +82,12 @@ export function initCounterWebRtcHost(
     });
 
     peer.on('error', (err) => {
-      // If room already taken, append timestamp
       if (err.type === 'unavailable-id') {
-        console.warn('Counter room busy, retrying with fallback id');
+        const fallbackRoom = `${targetRoom}-${Math.floor(Math.random() * 1000)}`;
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.setItem('krn_pos_counter_room_id', fallbackRoom);
+        }
+        setTimeout(() => initCounterWebRtcHost(fallbackRoom, onReceived), 500);
       }
     });
 
@@ -87,13 +104,81 @@ export function initCounterWebRtcHost(
 }
 
 /**
- * Connect Mobile Scanner Client to Counter Host over WebRTC
+ * Connect Mobile Scanner Client to Counter Host over WebRTC (Auto-reconnecting)
  */
 export function connectMobileToCounterHost(
-  roomId: string = DEFAULT_COUNTER_ROOM,
+  targetRoomId?: string,
   onStatusChange?: (connected: boolean) => void
 ): () => void {
-  try {
+  let isAlive = true;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let retryTimer: any = null;
+
+  const resolvedRoom =
+    targetRoomId ||
+    (typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('room') || getCounterRoomId()
+      : 'krn-counter-1');
+
+  const attemptConnect = () => {
+    if (!isAlive) return;
+    try {
+      if (activeMobilePeer) {
+        try {
+          activeMobilePeer.destroy();
+        } catch {
+          // ignore
+        }
+      }
+
+      const peer = new Peer({
+        debug: 0,
+      });
+      activeMobilePeer = peer;
+
+      peer.on('open', () => {
+        if (!isAlive) return;
+        const conn = peer.connect(resolvedRoom, { reliable: true });
+        activeMobileConn = conn;
+
+        conn.on('open', () => {
+          if (!isAlive) return;
+          onStatusChange?.(true);
+        });
+
+        conn.on('close', () => {
+          onStatusChange?.(false);
+          if (isAlive) {
+            retryTimer = setTimeout(attemptConnect, 3000);
+          }
+        });
+
+        conn.on('error', () => {
+          onStatusChange?.(false);
+          if (isAlive) {
+            retryTimer = setTimeout(attemptConnect, 3000);
+          }
+        });
+      });
+
+      peer.on('error', () => {
+        onStatusChange?.(false);
+        if (isAlive) {
+          retryTimer = setTimeout(attemptConnect, 3000);
+        }
+      });
+    } catch {
+      if (isAlive) {
+        retryTimer = setTimeout(attemptConnect, 3000);
+      }
+    }
+  };
+
+  attemptConnect();
+
+  return () => {
+    isAlive = false;
+    if (retryTimer) clearTimeout(retryTimer);
     if (activeMobilePeer) {
       try {
         activeMobilePeer.destroy();
@@ -101,43 +186,7 @@ export function connectMobileToCounterHost(
         // ignore
       }
     }
-
-    const peer = new Peer({
-      debug: 0,
-    });
-    activeMobilePeer = peer;
-
-    peer.on('open', () => {
-      const conn = peer.connect(roomId);
-      activeMobileConn = conn;
-
-      conn.on('open', () => {
-        onStatusChange?.(true);
-      });
-
-      conn.on('close', () => {
-        onStatusChange?.(false);
-      });
-
-      conn.on('error', () => {
-        onStatusChange?.(false);
-      });
-    });
-
-    peer.on('error', () => {
-      onStatusChange?.(false);
-    });
-
-    return () => {
-      try {
-        peer.destroy();
-      } catch {
-        // ignore
-      }
-    };
-  } catch {
-    return () => {};
-  }
+  };
 }
 
 /**

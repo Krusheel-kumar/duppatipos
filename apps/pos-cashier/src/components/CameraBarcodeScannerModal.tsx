@@ -165,11 +165,13 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
         await s.stop();
       }
       const qrConfig = {
-        fps: 12,
+        fps: 24,
         qrbox: (w: number, h: number) => ({
-          width: Math.min(Math.floor(w * 0.85), 320),
-          height: Math.min(Math.floor(h * 0.7), 160),
+          width: Math.min(Math.floor(w * 0.94), 400),
+          height: Math.min(Math.floor(h * 0.8), 240),
         }),
+        aspectRatio: 1.777778,
+        disableFlip: false,
       };
       await s.start(newCamId, qrConfig, handleProcessBarcode, () => {});
       setCameraActive(true);
@@ -227,10 +229,10 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
         scannerRef.current = scanner;
 
         const qrConfig = {
-          fps: 15,
+          fps: 24,
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-            const w = Math.min(Math.floor(viewfinderWidth * 0.92), 380);
-            const h = Math.min(Math.floor(viewfinderHeight * 0.78), 220);
+            const w = Math.min(Math.floor(viewfinderWidth * 0.94), 400);
+            const h = Math.min(Math.floor(viewfinderHeight * 0.8), 240);
             return { width: Math.max(w, 240), height: Math.max(h, 140) };
           },
           aspectRatio: 1.777778,

@@ -23,7 +23,9 @@ export const MobileScannerApp: React.FC<MobileScannerAppProps> = ({
 
   // Auto-connect to PC Counter via WebRTC (zero backend, browser-to-browser)
   useEffect(() => {
-    const disconnect = connectMobileToCounterHost('krn-counter-flagship-1', (connected) => {
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const roomFromUrl = searchParams?.get('room') || undefined;
+    const disconnect = connectMobileToCounterHost(roomFromUrl, (connected) => {
       setWebRtcConnected(connected);
     });
     return () => {
@@ -296,10 +298,10 @@ export const MobileScannerApp: React.FC<MobileScannerAppProps> = ({
         scannerRef.current = scanner;
 
         const qrConfig = {
-          fps: 15,
+          fps: 24,
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-            const w = Math.min(Math.floor(viewfinderWidth * 0.92), 380);
-            const h = Math.min(Math.floor(viewfinderHeight * 0.78), 220);
+            const w = Math.min(Math.floor(viewfinderWidth * 0.94), 400);
+            const h = Math.min(Math.floor(viewfinderHeight * 0.8), 240);
             return { width: Math.max(w, 240), height: Math.max(h, 140) };
           },
           aspectRatio: 1.777778,

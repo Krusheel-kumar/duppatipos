@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Product, ProductVariant } from '../types/pos';
 import { IconTag } from './icons';
+import JsBarcode from 'jsbarcode';
+import QRCode from 'qrcode';
 
 interface BarcodeLabelModalProps {
   isOpen: boolean;
@@ -10,32 +12,25 @@ interface BarcodeLabelModalProps {
   selectedVariant?: ProductVariant | null;
 }
 
-// Generate an SVG Code-128 simulated vector pattern from an alphanumeric string
+// Generate 100% compliant standard ISO/IEC 15417 Code-128 SVG barcode pattern
 function generateBarcodeSvg(code: string): string {
-  // Hash characters deterministically into bar widths (1, 2, 3, 4 units)
-  let bars = '10100110'; // Start Code B pattern
-  for (let i = 0; i < code.length; i++) {
-    const charCode = code.charCodeAt(i);
-    const pattern = ((charCode * 31 + i * 17) % 15).toString(2).padStart(4, '0');
-    bars += pattern.split('').map((b) => (b === '1' ? '110' : '100')).join('');
+  try {
+    if (typeof document === 'undefined') return '';
+    const svgNode = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    JsBarcode(svgNode, code, {
+      format: 'CODE128',
+      lineColor: '#000000',
+      width: 2,
+      height: 46,
+      displayValue: false,
+      margin: 6,
+      background: '#ffffff',
+    });
+    return new XMLSerializer().serializeToString(svgNode);
+  } catch (err) {
+    console.error('Failed to generate real Code-128 barcode:', err);
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40"><rect width="200" height="40" fill="#eee"/><text x="10" y="25" fill="#333">${code}</text></svg>`;
   }
-  bars += '11000101011'; // Stop pattern
-
-  // Convert binary pattern into SVG rectangles
-  let x = 10;
-  const barWidth = 1.8;
-  const height = 40;
-  const rects: string[] = [];
-
-  for (let i = 0; i < bars.length; i++) {
-    if (bars[i] === '1') {
-      rects.push(`<rect x="${x}" y="0" width="${barWidth}" height="${height}" fill="#000000" />`);
-    }
-    x += barWidth;
-  }
-
-  const totalWidth = x + 10;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${height}" style="width: 100%; height: 42px; display: block;">${rects.join('')}</svg>`;
 }
 
 export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
@@ -49,16 +44,30 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
   const [selectedVarId, setSelectedVarId] = useState<string>(initialVariant?.id || '');
   const [quantity, setQuantity] = useState<number>(1);
   const [labelType, setLabelType] = useState<'STICKER_50x25' | 'HANG_TAG_50x75'>('STICKER_50x25');
+  const [barcodeFormat, setBarcodeFormat] = useState<'CODE128' | 'QR' | 'DUAL'>('CODE128');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
   const currentProduct = products.find((p) => p.id === selectedProdId) || products[0];
   const variants = currentProduct?.variants || [];
   const currentVariant = variants.find((v) => v.id === selectedVarId) || variants[0];
 
-  const barcodeValue = currentVariant?.barcode || currentVariant?.sku || currentProduct?.barcode || currentProduct?.sku || 'KRN-001';
+  const barcodeValue = currentVariant?.barcode || currentVariant?.sku || currentProduct?.barcode || currentProduct?.sku || 'KRN-BS-KNG-001';
   const mrpValue = currentVariant?.mrp || currentProduct?.mrp || (currentProduct?.basePrice ? currentProduct.basePrice * 1.3 : 1999);
   const sellingPrice = currentVariant?.price || currentProduct?.basePrice || 1499;
   const hsnCode = currentProduct?.hsnCode || '6302';
   const variantDetail = currentVariant ? `${currentVariant.sizeLabel || currentVariant.name}${currentVariant.color ? ` • ${currentVariant.color}` : ''}${currentVariant.threadCount ? ` • ${currentVariant.threadCount}` : ''}` : 'Standard';
+
+  useEffect(() => {
+    if (barcodeValue) {
+      QRCode.toDataURL(barcodeValue, {
+        width: 140,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+      })
+        .then((url) => setQrCodeDataUrl(url))
+        .catch(() => {});
+    }
+  }, [barcodeValue]);
 
   const handlePrintLabels = () => {
     const printWindow = window.open('', '_blank', 'width=450,height=600');
@@ -66,6 +75,16 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
       alert('Please allow popups to print barcode labels.');
       return;
     }
+
+    const barcodeHtml =
+      barcodeFormat === 'QR'
+        ? `<img src="${qrCodeDataUrl}" style="width: 55px; height: 55px; margin: 2px auto; display: block;" />`
+        : barcodeFormat === 'DUAL'
+        ? `<div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin: 2px 0;">
+             <div style="flex: 1; max-width: 170px;">${generateBarcodeSvg(barcodeValue)}</div>
+             <img src="${qrCodeDataUrl}" style="width: 36px; height: 36px; display: block;" />
+           </div>`
+        : `<div style="margin: 2px 0;">${generateBarcodeSvg(barcodeValue)}</div>`;
 
     const labelsHtml = Array.from({ length: quantity })
       .map(
@@ -75,7 +94,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
           <div class="prod-title">${currentProduct.name}</div>
           <div class="variant-info">${variantDetail}</div>
           <div class="barcode-svg">
-            ${generateBarcodeSvg(barcodeValue)}
+            ${barcodeHtml}
           </div>
           <div class="barcode-number">${barcodeValue}</div>
           <div class="price-row">
@@ -321,6 +340,29 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                Barcode Symbology Format:
+              </label>
+              <select
+                value={barcodeFormat}
+                onChange={(e) => setBarcodeFormat(e.target.value as any)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.85rem',
+                  color: '#0f172a',
+                  background: '#f8fafc',
+                }}
+              >
+                <option value="CODE128">Standard 1D Barcode (Code-128)</option>
+                <option value="QR">2D QR Code (Fastest Mobile Focus)</option>
+                <option value="DUAL">Dual (1D Barcode + 2D QR Code)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                 Print Quantity (Copies):
               </label>
               <input
@@ -344,9 +386,14 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
 
           {/* Live Thermal Sticker Preview Box */}
           <div style={{ marginBottom: '16px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-              Live Thermal Label Preview:
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                Live Thermal Label Preview:
+              </span>
+              <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>
+                ✓ Real ISO Scannable {barcodeFormat === 'QR' ? 'QR Code' : 'Code-128'}
+              </span>
+            </div>
 
             <div
               style={{
@@ -362,8 +409,8 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
               {/* 50x25mm Label Representation */}
               <div
                 style={{
-                  width: '280px',
-                  minHeight: '135px',
+                  width: '290px',
+                  minHeight: '140px',
                   background: '#ffffff',
                   border: '2px dashed #94a3b8',
                   borderRadius: '6px',
@@ -386,11 +433,33 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
                 </div>
 
                 <div style={{ margin: '4px 0' }}>
-                  <div
-                    dangerouslySetInnerHTML={{ __html: generateBarcodeSvg(barcodeValue) }}
-                    style={{ margin: '0 auto', maxWidth: '210px' }}
-                  />
-                  <div style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: 700, color: '#0f172a', letterSpacing: '1px' }}>
+                  {barcodeFormat === 'QR' ? (
+                    qrCodeDataUrl ? (
+                      <img
+                        src={qrCodeDataUrl}
+                        alt="QR Code"
+                        style={{ width: '65px', height: '65px', margin: '0 auto', display: 'block' }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: '10px', color: '#94a3b8' }}>Generating QR...</div>
+                    )
+                  ) : barcodeFormat === 'DUAL' ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      <div
+                        dangerouslySetInnerHTML={{ __html: generateBarcodeSvg(barcodeValue) }}
+                        style={{ flex: 1, maxWidth: '180px' }}
+                      />
+                      {qrCodeDataUrl && (
+                        <img src={qrCodeDataUrl} alt="QR Code" style={{ width: '42px', height: '42px', display: 'block' }} />
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      dangerouslySetInnerHTML={{ __html: generateBarcodeSvg(barcodeValue) }}
+                      style={{ margin: '0 auto', maxWidth: '230px' }}
+                    />
+                  )}
+                  <div style={{ fontFamily: 'monospace', fontSize: '9.5px', fontWeight: 700, color: '#0f172a', letterSpacing: '1px' }}>
                     {barcodeValue}
                   </div>
                 </div>
