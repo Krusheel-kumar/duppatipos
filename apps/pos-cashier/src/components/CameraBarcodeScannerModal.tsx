@@ -26,6 +26,7 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const lastCodeRef = useRef<{ code: string; time: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Play crisp POS beep sound via Web Audio API synthesizer
   const playBeep = () => {
@@ -33,6 +34,9 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -45,6 +49,61 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
       osc.stop(ctx.currentTime + 0.12);
     } catch {
       // Audio fallback silent
+    }
+  };
+
+  const handleImageScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // 1. Try native hardware BarcodeDetector if supported by the browser
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof window !== 'undefined' && (window as any).BarcodeDetector) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const detector = new (window as any).BarcodeDetector({
+            formats: ['code_128', 'code_39', 'code_93', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code'],
+          });
+          const imgBitmap = await createImageBitmap(file);
+          const detected = await detector.detect(imgBitmap);
+          if (detected && detected.length > 0 && detected[0].rawValue) {
+            handleProcessBarcode(detected[0].rawValue);
+            return;
+          }
+        } catch {
+          // Fall through to Html5Qrcode scanFile
+        }
+      }
+
+      // 2. Fallback to Html5Qrcode file scan engine
+      let scanner = scannerRef.current;
+      if (!scanner) {
+        scanner = new Html5Qrcode('krunnex-camera-barcode-viewfinder', {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.QR_CODE,
+          ],
+          verbose: false,
+        });
+      }
+
+      const decodedText = await scanner.scanFile(file, false);
+      if (decodedText) {
+        handleProcessBarcode(decodedText);
+      }
+    } catch {
+      alert('Could not detect barcode in this image. Please ensure the barcode lines are clear and well-lit.');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -152,6 +211,7 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
           formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.UPC_A,
@@ -159,17 +219,22 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
             Html5QrcodeSupportedFormats.QR_CODE,
           ],
           verbose: false,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true,
+          },
         });
 
         scannerRef.current = scanner;
 
         const qrConfig = {
-          fps: 12,
+          fps: 15,
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-            const w = Math.min(Math.floor(viewfinderWidth * 0.85), 320);
-            const h = Math.min(Math.floor(viewfinderHeight * 0.7), 160);
-            return { width: Math.max(w, 200), height: Math.max(h, 120) };
+            const w = Math.min(Math.floor(viewfinderWidth * 0.92), 380);
+            const h = Math.min(Math.floor(viewfinderHeight * 0.78), 220);
+            return { width: Math.max(w, 240), height: Math.max(h, 140) };
           },
+          aspectRatio: 1.777778,
+          disableFlip: false,
         };
 
         const onSuccess = (decodedText: string) => {
@@ -376,7 +441,7 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
             overflow: 'hidden',
           }}
         >
-          {/* Html5Qrcode mounting container */}
+          {/* Html5Qrcode mounting container - keep block display so geometry can be read */}
           <div
             id="krunnex-camera-barcode-viewfinder"
             style={{
@@ -385,34 +450,61 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
               left: 0,
               width: '100%',
               height: '100%',
-              display: cameraActive ? 'block' : 'none',
             }}
           />
 
-          {/* Targeting Overlay Frame with corners and laser scan line */}
+          {/* Standby Loader when camera is warming up */}
+          {!cameraActive && !cameraError && (
+            <div
+              style={{
+                position: 'absolute',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '10px',
+                color: '#94a3b8',
+                fontSize: '0.82rem',
+                zIndex: 5,
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  border: '3px solid #334155',
+                  borderTopColor: '#38bdf8',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+              <span>Connecting camera feed...</span>
+            </div>
+          )}
+
+          {/* Clean HUD Targeting Frame Overlay (No duplicate/clashing shadow) */}
           <div
             style={{
               position: 'absolute',
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '270px',
-              height: '145px',
-              border: '2px solid rgba(56, 189, 248, 0.8)',
+              width: '300px',
+              maxWidth: '88%',
+              height: '150px',
+              border: '1.5px dashed rgba(56, 189, 248, 0.65)',
               borderRadius: '12px',
-              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.35)',
               pointerEvents: 'none',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '8px',
+              padding: '6px',
               zIndex: 10,
             }}
           >
             <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ width: '16px', height: '16px', borderTop: '3px solid #38bdf8', borderLeft: '3px solid #38bdf8' }} />
-              <div style={{ width: '16px', height: '16px', borderTop: '3px solid #38bdf8', borderRight: '3px solid #38bdf8' }} />
+              <div style={{ width: '18px', height: '18px', borderTop: '3px solid #38bdf8', borderLeft: '3px solid #38bdf8' }} />
+              <div style={{ width: '18px', height: '18px', borderTop: '3px solid #38bdf8', borderRight: '3px solid #38bdf8' }} />
             </div>
 
             {/* Red Laser Scanning Line */}
@@ -427,8 +519,8 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
             />
 
             <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ width: '16px', height: '16px', borderBottom: '3px solid #38bdf8', borderLeft: '3px solid #38bdf8' }} />
-              <div style={{ width: '16px', height: '16px', borderBottom: '3px solid #38bdf8', borderRight: '3px solid #38bdf8' }} />
+              <div style={{ width: '18px', height: '18px', borderBottom: '3px solid #38bdf8', borderLeft: '3px solid #38bdf8' }} />
+              <div style={{ width: '18px', height: '18px', borderBottom: '3px solid #38bdf8', borderRight: '3px solid #38bdf8' }} />
             </div>
           </div>
 
@@ -443,7 +535,7 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
                 fontSize: '0.85rem',
                 maxWidth: '85%',
                 zIndex: 15,
-                background: 'rgba(15, 23, 42, 0.9)',
+                background: 'rgba(15, 23, 42, 0.95)',
                 borderRadius: '10px',
                 border: '1px solid #475569',
               }}
@@ -498,7 +590,7 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
           </div>
         </div>
 
-        {/* Fast Manual Type / Paste Barcode Row */}
+        {/* Fast Manual Type / Paste Barcode Row + Photo Tag Scan */}
         <form
           onSubmit={handleManualSubmit}
           style={{
@@ -507,11 +599,20 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
             borderBottom: '1px solid #1e293b',
             display: 'flex',
             gap: '8px',
+            alignItems: 'center',
           }}
         >
           <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            onChange={handleImageScan}
+            style={{ display: 'none' }}
+          />
+
+          <input
             type="text"
-            placeholder="Or type/paste barcode (e.g. KRN-BS-KNG-001) & press Enter..."
+            placeholder="Type/paste barcode (e.g. KRN-BS-KNG-001) & Enter..."
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
             style={{
@@ -524,6 +625,7 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
               fontSize: '0.8rem',
             }}
           />
+
           <button
             type="submit"
             style={{
@@ -531,13 +633,36 @@ export const CameraBarcodeScannerModal: React.FC<CameraBarcodeScannerModalProps>
               color: '#ffffff',
               border: 'none',
               borderRadius: '6px',
-              padding: '6px 14px',
+              padding: '6px 12px',
               fontSize: '0.8rem',
               fontWeight: 600,
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
           >
-            Scan
+            Enter
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              background: '#047857',
+              color: '#ffffff',
+              border: '1px solid #059669',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              whiteSpace: 'nowrap',
+            }}
+            title="Scan tag from a photo or camera snapshot"
+          >
+            📸 Photo Tag
           </button>
         </form>
 

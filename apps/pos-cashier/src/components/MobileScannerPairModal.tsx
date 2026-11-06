@@ -14,24 +14,34 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
   lastScannedItem,
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [copied, setCopied] = useState<boolean>(false);
   const [scannerUrl, setScannerUrl] = useState<string>('');
+  const [copied, setCopied] = useState<boolean>(false);
+  const [connectionMode, setConnectionMode] = useState<'wifi' | 'custom'>('wifi');
+  const [customUrl, setCustomUrl] = useState<string>('');
+  const [wifiIp, setWifiIp] = useState<string>('192.168.29.170'); // Local Wi-Fi IP
+
+  // Calculate actual reachable scanner URL
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+  const port = typeof window !== 'undefined' && window.location.port ? window.location.port : '5173';
+  const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+
+  const localHostUrl = `${origin}${path}?mode=mobile-scanner`;
+  const localWifiUrl = `${protocol}//${wifiIp}:${port}${path}?mode=mobile-scanner`;
+
+  const activeUrl = connectionMode === 'custom' && customUrl.trim()
+    ? (customUrl.includes('?') ? customUrl : `${customUrl}?mode=mobile-scanner`)
+    : localWifiUrl;
+
+  useEffect(() => {
+    setScannerUrl(activeUrl);
+  }, [activeUrl]);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    // Cloudflare Tunnel (100% stable, zero expired sessions, valid SSL everywhere)
-    const publicTunnelUrl = 'https://prove-introduces-confident-teenage.trycloudflare.com/?mode=mobile-scanner';
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
-    const path = typeof window !== 'undefined' ? window.location.pathname : '/';
-    const localUrl = `${origin}${path}?mode=mobile-scanner`;
-
-    // Default to the public tunnel so phones can scan immediately
-    const targetUrl = publicTunnelUrl || localUrl;
-    setScannerUrl(targetUrl);
-
-    QRCode.toDataURL(targetUrl, {
-      width: 260,
+    QRCode.toDataURL(activeUrl, {
+      width: 240,
       margin: 2,
       color: {
         dark: '#090d16',
@@ -40,7 +50,7 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
     })
       .then((url) => setQrDataUrl(url))
       .catch((err) => console.error('Failed to generate pairing QR:', err));
-  }, [isOpen]);
+  }, [isOpen, activeUrl]);
 
   const handleCopyLink = () => {
     if (!scannerUrl) return;
@@ -50,7 +60,7 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
   };
 
   const handleOpenLocalTest = () => {
-    window.open(scannerUrl, '_blank', 'width=420,height=820');
+    window.open(localHostUrl, '_blank', 'width=420,height=820');
   };
 
   if (!isOpen) return null;
@@ -111,10 +121,97 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
         </div>
 
         {/* Pairing Instructions & QR Code */}
-        <div style={{ padding: '24px 20px', textAlign: 'center' }}>
-          <p style={{ margin: '0 0 16px 0', fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.5 }}>
-            Scan this QR code with your phone camera to launch the <strong>Dedicated Mobile Scanner</strong>.
-            Items scanned on your phone will automatically appear in this counter's billing cart!
+        <div style={{ padding: '20px 20px', textAlign: 'center' }}>
+          {/* Connection Mode Pill Selector */}
+          <div
+            style={{
+              display: 'inline-flex',
+              background: '#090d16',
+              padding: '3px',
+              borderRadius: '8px',
+              border: '1px solid #334155',
+              marginBottom: '16px',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setConnectionMode('wifi')}
+              style={{
+                background: connectionMode === 'wifi' ? '#2563eb' : 'transparent',
+                color: connectionMode === 'wifi' ? '#ffffff' : '#94a3b8',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '6px 14px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              📶 Same Wi-Fi (Mobile)
+            </button>
+            <button
+              type="button"
+              onClick={() => setConnectionMode('custom')}
+              style={{
+                background: connectionMode === 'custom' ? '#2563eb' : 'transparent',
+                color: connectionMode === 'custom' ? '#ffffff' : '#94a3b8',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '6px 14px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              🌐 Custom Tunnel / Web URL
+            </button>
+          </div>
+
+          {connectionMode === 'wifi' && (
+            <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>PC Wi-Fi IP:</span>
+              <input
+                type="text"
+                value={wifiIp}
+                onChange={(e) => setWifiIp(e.target.value)}
+                style={{
+                  background: '#090d16',
+                  border: '1px solid #334155',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  color: '#38bdf8',
+                  fontSize: '0.78rem',
+                  fontFamily: 'monospace',
+                  width: '140px',
+                  textAlign: 'center',
+                }}
+              />
+            </div>
+          )}
+
+          {connectionMode === 'custom' && (
+            <div style={{ marginBottom: '12px' }}>
+              <input
+                type="text"
+                placeholder="Paste your live tunnel URL (e.g. https://...)"
+                value={customUrl}
+                onChange={(e) => setCustomUrl(e.target.value)}
+                style={{
+                  background: '#090d16',
+                  border: '1px solid #334155',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  color: '#38bdf8',
+                  fontSize: '0.78rem',
+                  width: '90%',
+                  textAlign: 'center',
+                }}
+              />
+            </div>
+          )}
+
+          <p style={{ margin: '0 0 14px 0', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.4 }}>
+            Scan with phone camera or tap <strong>Test on PC (Popup)</strong> below to scan tag barcodes!
           </p>
 
           {/* QR Code Container */}
@@ -125,7 +222,7 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
               background: '#ffffff',
               borderRadius: '16px',
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
-              marginBottom: '16px',
+              marginBottom: '14px',
             }}
           >
             {qrDataUrl ? (

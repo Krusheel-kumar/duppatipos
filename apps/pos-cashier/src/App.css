@@ -5545,6 +5545,17 @@ body {
 /* ==========================================================================
    CAMERA BARCODE VIEWFINDER ENHANCEMENTS (html5-qrcode)
    ========================================================================== */
+#krunnex-camera-barcode-viewfinder,
+#krunnex-mobile-scanner-viewfinder {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  overflow: hidden !important;
+  background: #020617 !important;
+}
+
 #krunnex-camera-barcode-viewfinder video,
 #krunnex-mobile-scanner-viewfinder video {
   width: 100% !important;
@@ -5555,17 +5566,20 @@ body {
 
 #krunnex-camera-barcode-viewfinder canvas,
 #krunnex-mobile-scanner-viewfinder canvas {
-  display: none !important;
+  position: absolute !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 1px !important;
+  height: 1px !important;
 }
 
-#krunnex-camera-barcode-viewfinder img[alt="Info icon"],
-#krunnex-mobile-scanner-viewfinder img[alt="Info icon"] {
-  display: none !important;
-}
-
+#krunnex-camera-barcode-viewfinder img,
+#krunnex-mobile-scanner-viewfinder img,
 #krunnex-camera-barcode-viewfinder #qr-shaded-region,
-#krunnex-mobile-scanner-viewfinder #qr-shaded-region {
-  border-radius: 8px !important;
+#krunnex-mobile-scanner-viewfinder #qr-shaded-region,
+#krunnex-camera-barcode-viewfinder svg,
+#krunnex-mobile-scanner-viewfinder svg {
+  display: none !important;
 }
 
 

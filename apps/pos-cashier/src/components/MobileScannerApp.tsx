@@ -55,12 +55,33 @@ export const MobileScannerApp: React.FC<MobileScannerAppProps> = ({
     if (!file) return;
 
     try {
+      // 1. Try native hardware BarcodeDetector if supported
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof window !== 'undefined' && (window as any).BarcodeDetector) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const detector = new (window as any).BarcodeDetector({
+            formats: ['code_128', 'code_39', 'code_93', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code'],
+          });
+          const imgBitmap = await createImageBitmap(file);
+          const detected = await detector.detect(imgBitmap);
+          if (detected && detected.length > 0 && detected[0].rawValue) {
+            handleProcessBarcode(detected[0].rawValue, 'mobile-camera');
+            return;
+          }
+        } catch {
+          // Fall through to Html5Qrcode
+        }
+      }
+
+      // 2. Fallback to Html5Qrcode file scan
       let scanner = scannerRef.current;
       if (!scanner) {
         scanner = new Html5Qrcode('krunnex-mobile-scanner-viewfinder', {
           formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.UPC_A,
@@ -90,6 +111,9 @@ export const MobileScannerApp: React.FC<MobileScannerAppProps> = ({
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -256,6 +280,7 @@ export const MobileScannerApp: React.FC<MobileScannerAppProps> = ({
           formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.UPC_A,
@@ -263,6 +288,9 @@ export const MobileScannerApp: React.FC<MobileScannerAppProps> = ({
             Html5QrcodeSupportedFormats.QR_CODE,
           ],
           verbose: false,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true,
+          },
         });
 
         scannerRef.current = scanner;
@@ -270,10 +298,12 @@ export const MobileScannerApp: React.FC<MobileScannerAppProps> = ({
         const qrConfig = {
           fps: 15,
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-            const w = Math.min(Math.floor(viewfinderWidth * 0.88), 340);
-            const h = Math.min(Math.floor(viewfinderHeight * 0.7), 180);
-            return { width: Math.max(w, 220), height: Math.max(h, 130) };
+            const w = Math.min(Math.floor(viewfinderWidth * 0.92), 380);
+            const h = Math.min(Math.floor(viewfinderHeight * 0.78), 220);
+            return { width: Math.max(w, 240), height: Math.max(h, 140) };
           },
+          aspectRatio: 1.777778,
+          disableFlip: false,
         };
 
         const onSuccess = (decodedText: string) => {
@@ -535,6 +565,7 @@ export const MobileScannerApp: React.FC<MobileScannerAppProps> = ({
           borderBottom: '1px solid #1e293b',
         }}
       >
+        {/* Html5Qrcode mounting container */}
         <div
           id="krunnex-mobile-scanner-viewfinder"
           style={{
@@ -543,28 +574,55 @@ export const MobileScannerApp: React.FC<MobileScannerAppProps> = ({
             left: 0,
             width: '100%',
             height: '100%',
-            display: cameraActive ? 'block' : 'none',
           }}
         />
 
-        {/* Targeting Frame Overlay with Corner Marks and Animated Red Laser */}
+        {/* Standby Loader when camera is warming up */}
+        {!cameraActive && !cameraError && (
+          <div
+            style={{
+              position: 'absolute',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
+              color: '#94a3b8',
+              fontSize: '0.82rem',
+              zIndex: 5,
+            }}
+          >
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                border: '3px solid #334155',
+                borderTopColor: '#10b981',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }}
+            />
+            <span>Starting camera lens...</span>
+          </div>
+        )}
+
+        {/* Targeting Frame Overlay with Corner Marks and Animated Red Laser (Clean, No clashing shadow) */}
         <div
           style={{
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '280px',
+            width: '290px',
+            maxWidth: '88%',
             height: '150px',
-            border: '2px solid rgba(56, 189, 248, 0.85)',
+            border: '1.5px dashed rgba(56, 189, 248, 0.7)',
             borderRadius: '12px',
-            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.38)',
             pointerEvents: 'none',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '8px',
+            padding: '6px',
             zIndex: 10,
           }}
         >
