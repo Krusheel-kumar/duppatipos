@@ -1,0 +1,12 @@
+{
+  "name": "krunnex-pos-workspace",
+  "private": true,
+  "description": "Krunnex POS Multi-Frontend Workspace",
+  "scripts": {
+    "dev:pos": "npm run dev --prefix apps/pos-cashier",
+    "dev:kitchen": "npm run dev --prefix apps/kitchen-kds",
+    "dev:admin": "npm run dev --prefix apps/admin-portal",
+    "build:all": "npm run build --prefix apps/pos-cashier && npm run build --prefix apps/kitchen-kds && npm run build --prefix apps/admin-portal",
+    "test:all": "npm test --prefix apps/pos-cashier && npm test --prefix apps/kitchen-kds && npm test --prefix apps/admin-portal"
+  }
+}
