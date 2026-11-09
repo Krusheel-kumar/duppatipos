@@ -774,6 +774,25 @@ export function App() {
     setApiError(null);
   };
 
+  // Global POS Terminal Keyboard Shortcuts (F2: New Bill, F4: Focus Scan)
+  useEffect(() => {
+    const handleGlobalShortcuts = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        handleNewOrder();
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        const input = document.querySelector('.hero-scanner-input') as HTMLInputElement | null;
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalShortcuts);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
+  }, []);
+
   // Handle Order Type Switching (Dine-in <-> Takeaway <-> Counter)
   // Preserves already added cart items so staff can convert order type before sending to kitchen!
   const handleOrderTypeChange = (newType: OrderType) => {

@@ -522,23 +522,93 @@ Thank you for supporting artisanal textiles! 🌿`;
             </button>
           </div>
 
-          {/* Cash Tender & Change Return View */}
+          {/* Cash Tender & Change Return View with Big Brand Quick Presets */}
           {paymentMode === 'CASH' && (
-            <div style={{ marginTop: '8px', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Cash Tendered:</span>
-                <input
-                  type="number"
-                  placeholder={`₹${Math.ceil(total)}`}
-                  value={cashTendered}
-                  onChange={(e) => setCashTendered(e.target.value)}
-                  style={{ width: '90px', padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', textAlign: 'right', fontWeight: 700 }}
-                />
+            <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>Cash Tendered:</span>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>₹</span>
+                  <input
+                    type="number"
+                    placeholder={`${Math.ceil(total)}`}
+                    value={cashTendered}
+                    onChange={(e) => setCashTendered(e.target.value)}
+                    style={{
+                      width: '105px',
+                      padding: '5px 8px 5px 20px',
+                      borderRadius: '6px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.86rem',
+                      textAlign: 'right',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
               </div>
+
+              {/* 1-Tap Cash Presets (Square POS Style) */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setCashTendered(String(Math.ceil(total)))}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '5px',
+                    border: '1px solid #059669',
+                    background: '#ecfdf5',
+                    color: '#047857',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Exact (₹{Math.ceil(total)})
+                </button>
+                {[500, 1000, 2000, 5000].map((amt) => {
+                  if (amt < Math.ceil(total) * 0.8 && amt !== 500) return null;
+                  return (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setCashTendered(String(amt))}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '5px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#334155',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ₹{amt.toLocaleString('en-IN')}
+                    </button>
+                  );
+                })}
+              </div>
+
               {tenderedNum > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', fontWeight: 700, color: tenderedNum >= total ? '#047857' : '#b91c1c' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    background: tenderedNum >= total ? '#ecfdf5' : '#fef2f2',
+                    border: tenderedNum >= total ? '1px solid #a7f3d0' : '1px solid #fecaca',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    color: tenderedNum >= total ? '#047857' : '#b91c1c',
+                  }}
+                >
                   <span>{tenderedNum >= total ? 'Change to Return:' : 'Remaining Due:'}</span>
-                  <span>₹{Math.abs(changeToReturn).toFixed(2)}</span>
+                  <span style={{ fontSize: '0.92rem' }}>₹{Math.abs(changeToReturn).toFixed(2)}</span>
                 </div>
               )}
             </div>
@@ -546,15 +616,15 @@ Thank you for supporting artisanal textiles! 🌿`;
 
           {/* UPI Dynamic QR Preview */}
           {paymentMode === 'UPI' && items.length > 0 && (
-            <div style={{ marginTop: '8px', padding: '8px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ marginTop: '10px', padding: '10px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(`upi://pay?pa=krunnex.boutique@okhdfcbank&pn=Krunnex%20Boutique&am=${total}&cu=INR`)}`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(`upi://pay?pa=krunnex.boutique@okhdfcbank&pn=Krunnex%20Boutique&am=${total}&cu=INR`)}`}
                 alt="UPI QR Code"
-                style={{ width: '50px', height: '50px', borderRadius: '6px', background: '#ffffff', padding: '2px', border: '1px solid #86efac' }}
+                style={{ width: '56px', height: '56px', borderRadius: '6px', background: '#ffffff', padding: '2px', border: '1px solid #86efac' }}
               />
-              <div style={{ fontSize: '0.75rem', color: '#166534', lineHeight: 1.3 }}>
-                <strong>Dynamic Counter UPI QR</strong>
-                <div>Customer scans via GPay/PhonePe/Paytm</div>
+              <div style={{ fontSize: '0.76rem', color: '#166534', lineHeight: 1.35 }}>
+                <strong style={{ fontSize: '0.82rem', display: 'block', marginBottom: '2px' }}>Live Dynamic Counter UPI QR</strong>
+                <div>Customer points phone camera (GPay / PhonePe / Paytm) to pay ₹{total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
               </div>
             </div>
           )}
