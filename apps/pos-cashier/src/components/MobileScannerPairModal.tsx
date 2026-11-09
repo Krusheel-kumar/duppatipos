@@ -17,23 +17,44 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [scannerUrl, setScannerUrl] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
-  const [connectionMode, setConnectionMode] = useState<'wifi' | 'custom'>('wifi');
+  // Calculate actual reachable scanner URL
+  const isBrowser = typeof window !== 'undefined';
+  const origin = isBrowser ? window.location.origin : 'https://localhost:5173';
+  const hostname = isBrowser ? window.location.hostname : 'localhost';
+  const port = isBrowser && window.location.port ? window.location.port : '';
+  const protocol = isBrowser ? window.location.protocol : 'https:';
+  const path = isBrowser ? window.location.pathname : '/';
+  const roomId = getCounterRoomId();
+
+  // Auto-detect if running on Vercel, Netlify, Render, GitHub Pages, or any public web domain
+  const isCloudHost = isBrowser &&
+    hostname !== 'localhost' &&
+    hostname !== '127.0.0.1' &&
+    !hostname.startsWith('192.168.') &&
+    !hostname.startsWith('10.') &&
+    !hostname.startsWith('172.16.') &&
+    !hostname.startsWith('172.17.') &&
+    !hostname.startsWith('172.18.') &&
+    !hostname.startsWith('172.19.') &&
+    !hostname.startsWith('172.2') &&
+    !hostname.startsWith('172.3');
+
+  const [connectionMode, setConnectionMode] = useState<'cloud' | 'wifi' | 'custom'>(() => {
+    return isCloudHost ? 'cloud' : 'wifi';
+  });
   const [customUrl, setCustomUrl] = useState<string>('');
   const [wifiIp, setWifiIp] = useState<string>('192.168.29.170'); // Local Wi-Fi IP
 
-  // Calculate actual reachable scanner URL
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://localhost:5173';
-  const port = typeof window !== 'undefined' && window.location.port ? window.location.port : '5173';
-  const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
-  const path = typeof window !== 'undefined' ? window.location.pathname : '/';
-  const roomId = getCounterRoomId();
+  const cloudUrl = `${origin}${path}?mode=mobile-scanner&room=${roomId}`;
+  const localWifiUrl = `${protocol}//${wifiIp}:${port || '5173'}${path}?mode=mobile-scanner&room=${roomId}`;
 
-  const localHostUrl = `${origin}${path}?mode=mobile-scanner&room=${roomId}`;
-  const localWifiUrl = `${protocol}//${wifiIp}:${port}${path}?mode=mobile-scanner&room=${roomId}`;
-
-  const activeUrl = connectionMode === 'custom' && customUrl.trim()
-    ? (customUrl.includes('?') ? `${customUrl}&room=${roomId}` : `${customUrl}?mode=mobile-scanner&room=${roomId}`)
-    : localWifiUrl;
+  const activeUrl = connectionMode === 'cloud' || (isCloudHost && connectionMode !== 'custom' && connectionMode !== 'wifi')
+    ? cloudUrl
+    : connectionMode === 'custom' && customUrl.trim()
+      ? (customUrl.includes('?') ? `${customUrl}&room=${roomId}` : `${customUrl}?mode=mobile-scanner&room=${roomId}`)
+      : connectionMode === 'wifi'
+        ? localWifiUrl
+        : cloudUrl;
 
   useEffect(() => {
     setScannerUrl(activeUrl);
@@ -62,7 +83,7 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
   };
 
   const handleOpenLocalTest = () => {
-    window.open(localHostUrl, '_blank', 'width=420,height=820');
+    window.open(activeUrl, '_blank', 'width=420,height=820');
   };
 
   if (!isOpen) return null;
@@ -132,9 +153,30 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
               padding: '3px',
               borderRadius: '8px',
               border: '1px solid #334155',
-              marginBottom: '16px',
+              marginBottom: '14px',
+              flexWrap: 'wrap',
+              gap: '4px',
+              justifyContent: 'center',
             }}
           >
+            {isCloudHost && (
+              <button
+                type="button"
+                onClick={() => setConnectionMode('cloud')}
+                style={{
+                  background: connectionMode === 'cloud' ? '#059669' : 'transparent',
+                  color: connectionMode === 'cloud' ? '#ffffff' : '#94a3b8',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 14px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                ☁️ Live Cloud (Vercel)
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setConnectionMode('wifi')}
@@ -149,7 +191,7 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
                 cursor: 'pointer',
               }}
             >
-              📶 Same Wi-Fi (Mobile)
+              📶 Same Wi-Fi (LAN)
             </button>
             <button
               type="button"
@@ -165,9 +207,28 @@ export const MobileScannerPairModal: React.FC<MobileScannerPairModalProps> = ({
                 cursor: 'pointer',
               }}
             >
-              🌐 Custom Tunnel / Web URL
+              🌐 Custom URL / Tunnel
             </button>
           </div>
+
+          {isCloudHost && connectionMode === 'cloud' && (
+            <div
+              style={{
+                marginBottom: '14px',
+                padding: '6px 12px',
+                background: '#064e3b',
+                border: '1px solid #059669',
+                borderRadius: '8px',
+                color: '#6ee7b7',
+                fontSize: '0.76rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>✓ Live Cloud Origin: <strong>{hostname}</strong> (Scannable from any phone on 4G/5G/Wi-Fi)</span>
+            </div>
+          )}
 
           {connectionMode === 'wifi' && (
             <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
