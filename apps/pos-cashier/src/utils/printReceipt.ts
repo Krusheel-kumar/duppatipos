@@ -47,6 +47,66 @@ export interface CustomerBillPrintData {
 }
 
 /**
+ * Print receipt HTML using a hidden in-page <iframe> to eliminate annoying pop-up windows.
+ * In Chrome/Edge retail POS (--kiosk-printing), this prints silently with zero dialogs!
+ */
+export function printHtmlViaHiddenIframe(htmlContent: string): void {
+  try {
+    if (typeof document === 'undefined') return;
+
+    let iframe = document.getElementById('krunnex-silent-print-frame') as HTMLIFrameElement | null;
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'krunnex-silent-print-frame';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0px';
+      iframe.style.height = '0px';
+      iframe.style.border = 'none';
+      iframe.style.opacity = '0';
+      iframe.style.pointerEvents = 'none';
+      document.body.appendChild(iframe);
+    }
+
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (doc) {
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
+
+      setTimeout(() => {
+        try {
+          iframe?.contentWindow?.focus();
+          iframe?.contentWindow?.print();
+        } catch {
+          // Ignore
+        }
+      }, 250);
+      return;
+    }
+  } catch (err) {
+    console.warn('Hidden iframe print failed, falling back:', err);
+  }
+
+  // Graceful fallback to window.open if iframe is blocked
+  try {
+    const printWindow = window.open('', '_blank', 'width=420,height=650');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+/**
  * Print Kitchen Order Ticket (KOT)
  * STRICTLY NO PRICES, NO TAXES, NO FINANCIALS.
  * Only kitchen preparation details: Table, Order #, Time, Items, Variants, Notes, Quantities.
@@ -232,13 +292,7 @@ export async function printCustomerBill(data: CustomerBillPrintData): Promise<vo
     console.warn('Direct thermal print for customer bill failed or not connected, falling back to browser dialog:', err);
   }
 
-  // 2. Fallback to Browser Print Window
-  const printWindow = window.open('', '_blank', 'width=420,height=650');
-  if (!printWindow) {
-    alert('Please allow popups in your browser to print the customer bill.');
-    return;
-  }
-
+  // 2. Render bill HTML and dispatch via invisible iframe
   const isPaid = data.balanceDue <= 0.01;
   const itemsHtml = data.items
     .map(
@@ -269,7 +323,7 @@ export async function printCustomerBill(data: CustomerBillPrintData): Promise<vo
         .join('')
     : '<tr><td colspan="2" style="padding: 2px 0; color: #b45309;">No payment recorded yet</td></tr>';
 
-  printWindow.document.write(`
+  const billHtml = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -415,13 +469,9 @@ export async function printCustomerBill(data: CustomerBillPrintData): Promise<vo
         </div>
       </body>
     </html>
-  `);
+  `;
 
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-  }, 250);
+  printHtmlViaHiddenIframe(billHtml);
 }
 
 export interface KOTModificationPrintData {

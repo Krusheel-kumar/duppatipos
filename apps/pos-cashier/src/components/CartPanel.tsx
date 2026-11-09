@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { CartItem, OrderType, CalculationResponse, Order, Bill, OrderItem } from '../types/pos';
 import { getProductImage } from '../utils/productVisuals';
-import { printCustomerBill } from '../utils/printReceipt';
+import { printCustomerBill, type CustomerBillPrintData } from '../utils/printReceipt';
 import {
   IconReceipt,
   IconPhone,
@@ -65,6 +65,33 @@ export const CartPanel: React.FC<CartPanelProps> = ({
   const [cashTendered, setCashTendered] = useState<string>('');
   const [manualDiscount, setManualDiscount] = useState<number>(0);
   const [settleSuccessMsg, setSettleSuccessMsg] = useState<string | null>(null);
+
+  // Auto-Print Receipt Mode (Default: false to eliminate intrusive popups and allow silent 1-click checkout)
+  const [autoPrintReceipt, setAutoPrintReceipt] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('krunnex_auto_print_receipt');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  const [lastSettledBill, setLastSettledBill] = useState<{
+    invoiceNumber: string;
+    paidVia: string;
+    totalAmount: number;
+    printData: CustomerBillPrintData;
+    whatsappUrl?: string;
+  } | null>(null);
+
+  const handleToggleAutoPrint = (checked: boolean) => {
+    setAutoPrintReceipt(checked);
+    try {
+      localStorage.setItem('krunnex_auto_print_receipt', JSON.stringify(checked));
+    } catch {
+      // ignore
+    }
+  };
 
   // Financial calculations
   const rawSubtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
@@ -167,15 +194,73 @@ Thank you for supporting artisanal textiles! 🌿`;
   const handleSettleAndNextCustomer = () => {
     if (items.length === 0) return;
 
-    // 1. Dispatch WhatsApp if mobile was entered
+    // Snapshot settled bill data for 1-click receipt print and WhatsApp e-bill
+    const settledSnapshot: CustomerBillPrintData = {
+      orderNumber: invoiceNumber,
+      orderType: 'COUNTER',
+      invoiceNumber,
+      createdAt: new Date().toISOString(),
+      items: items.map((item) => ({
+        name: item.product.name,
+        variantName: item.selectedVariant ? `${item.selectedVariant.name} (HSN: ${item.product.hsnCode || '6302'})` : undefined,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+      })),
+      subtotal,
+      taxAmount: tax,
+      discountAmount: discount + mrpSavings,
+      totalAmount: total,
+      payments: [
+        {
+          method: paymentMode,
+          amount: total,
+          status: 'SUCCESSFUL',
+          transactionRef: paymentMode === 'UPI' ? 'UPI-QR-COUNTER' : undefined,
+        },
+      ],
+      amountPaid: total,
+      balanceDue: 0,
+      outletName: 'KRUNNEX BOUTIQUE',
+      outletAddress: 'Boutique Textiles & Apparel • Flagship Store',
+    };
+
+    let waUrl: string | undefined = undefined;
     if (customerPhone.trim()) {
-      handleSendWhatsApp();
+      const phone = customerPhone.replace(/\D/g, '');
+      const cleanPhone = phone.length === 10 ? `91${phone}` : phone;
+      const itemsSummary = items
+        .map(
+          (i) =>
+            `• ${i.quantity}x ${i.product.name} (${i.selectedVariant?.name || 'Standard'}) - ₹${i.lineTotal.toLocaleString('en-IN')}`
+        )
+        .join('\n');
+      const msg = `🌿 *KRUNNEX LUXE RETAIL - OFFICIAL INVOICE*
+----------------------------------------
+Invoice No: #${invoiceNumber}
+Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+Cashier: Counter #01 (John Doe)
+----------------------------------------
+${itemsSummary}
+----------------------------------------
+Subtotal: ₹${subtotal.toLocaleString('en-IN')}
+GST (5% Textile): ₹${tax.toLocaleString('en-IN')}
+${discount > 0 ? `Special Discount: -₹${discount.toLocaleString('en-IN')}\n` : ''}*Total Amount Paid: ₹${total.toLocaleString('en-IN')}*
+Payment Mode: ${paymentMode}
+----------------------------------------
+🔄 *Exchange Policy:* 7 days exchange with this digital bill.
+Thank you for shopping at Krunnex Luxe Retail! 🌿`;
+
+      const encoded = encodeURIComponent(msg);
+      waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
     }
 
-    // 2. Trigger thermal print
-    handlePrintThermalBill();
+    // 1. Only print automatically if cashier explicitly enabled Auto-Print in settings
+    if (autoPrintReceipt) {
+      printCustomerBill(settledSnapshot);
+    }
 
-    // 3. Play pleasant success tone
+    // 2. Play pleasant success tone
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const osc = audioCtx.createOscillator();
@@ -193,12 +278,17 @@ Thank you for supporting artisanal textiles! 🌿`;
       // AudioContext unavailable
     }
 
-    // 4. Show success message
-    const paidVia = paymentMode;
-    const paidAmt = total.toLocaleString('en-IN');
-    setSettleSuccessMsg(`✓ Bill #${invoiceNumber} paid via ${paidVia} (₹${paidAmt})! Bill issued.`);
+    // 3. Set post-settle banner with 1-click Print & WhatsApp
+    setLastSettledBill({
+      invoiceNumber,
+      paidVia: paymentMode,
+      totalAmount: total,
+      printData: settledSnapshot,
+      whatsappUrl: waUrl,
+    });
+    setSettleSuccessMsg(`✓ Bill #${invoiceNumber} settled via ${paymentMode} (₹${total.toLocaleString('en-IN')})`);
 
-    // 5. Reset screen cleanly for next customer
+    // 4. Reset screen cleanly for next customer
     onClearCart();
     setCustomerPhone('');
     setCustomerName('');
@@ -207,7 +297,7 @@ Thank you for supporting artisanal textiles! 🌿`;
 
     setTimeout(() => {
       setSettleSuccessMsg(null);
-    }, 4500);
+    }, 7000);
   };
 
   return (
@@ -247,13 +337,88 @@ Thank you for supporting artisanal textiles! 🌿`;
         </div>
       </div>
 
-      {/* Settle Success Alert */}
-      {settleSuccessMsg && (
+      {/* Settle Success Alert with 1-Click Print & WhatsApp */}
+      {lastSettledBill ? (
+        <div
+          style={{
+            background: '#064e3b',
+            borderBottom: '1.5px solid #059669',
+            padding: '12px 16px',
+            color: '#ecfdf5',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <IconCheckCircle size={15} />
+              <span>Bill #{lastSettledBill.invoiceNumber} Settled (₹{lastSettledBill.totalAmount.toLocaleString('en-IN')})</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setLastSettledBill(null)}
+              style={{ background: 'transparent', border: 'none', color: '#a7f3d0', cursor: 'pointer', fontSize: '13px' }}
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => printCustomerBill(lastSettledBill.printData)}
+              style={{
+                flex: 1,
+                padding: '7px 10px',
+                borderRadius: '6px',
+                background: '#ffffff',
+                color: '#064e3b',
+                border: 'none',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+              }}
+            >
+              <IconPrinter size={15} />
+              <span>1-Click Print Receipt</span>
+            </button>
+            {lastSettledBill.whatsappUrl && (
+              <a
+                href={lastSettledBill.whatsappUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: '6px',
+                  background: '#25D366',
+                  color: '#ffffff',
+                  textDecoration: 'none',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                <IconWhatsApp size={15} />
+                <span>WhatsApp</span>
+              </a>
+            )}
+          </div>
+        </div>
+      ) : settleSuccessMsg ? (
         <div style={{ background: '#ecfdf5', borderBottom: '1px solid #a7f3d0', padding: '10px 16px', color: '#065f46', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <IconCheckCircle size={16} />
           <span>{settleSuccessMsg}</span>
         </div>
-      )}
+      ) : null}
 
       {/* 2. Customer Mobile Section (Always Visible for Quick WhatsApp E-Bill) */}
       <div style={{ padding: '12px 18px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
@@ -683,6 +848,22 @@ Thank you for supporting artisanal textiles! 🌿`;
             <IconPrinter size={16} />
             <span>Print Bill</span>
           </button>
+        </div>
+
+        {/* Auto-Print Receipt Mode Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', padding: '2px 4px' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#475569', cursor: 'pointer', fontWeight: 600 }}>
+            <input
+              type="checkbox"
+              checked={autoPrintReceipt}
+              onChange={(e) => handleToggleAutoPrint(e.target.checked)}
+              style={{ accentColor: '#059669', width: '14px', height: '14px', cursor: 'pointer' }}
+            />
+            <span>Auto-Print Receipt on Settle</span>
+          </label>
+          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+            {autoPrintReceipt ? '🖨️ Auto-Print Enabled' : '⚡ Silent Settle (No Popups)'}
+          </span>
         </div>
 
         {/* 7. Primary Action Button: Settle & Next Customer (With 'Checkout' text for tests) */}
