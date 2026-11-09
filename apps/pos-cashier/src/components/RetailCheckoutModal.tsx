@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { CartItem, CalculationResponse } from '../types/pos';
-import { printCustomerBill } from '../utils/printReceipt';
+import type { CustomerBillPrintData } from '../utils/printReceipt';
+import { ReceiptSlipModal } from './ReceiptSlipModal';
 import { IconPrinter, IconWhatsApp, IconQrCode, IconCash, IconCard, IconSwap, IconCreditNote, IconTag } from './icons';
 
 interface RetailCheckoutModalProps {
@@ -38,6 +39,8 @@ export const RetailCheckoutModal: React.FC<RetailCheckoutModalProps> = ({
 
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [lastInvoiceNumber, setLastInvoiceNumber] = useState<string>('');
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
+  const [receiptSlipData, setReceiptSlipData] = useState<CustomerBillPrintData | null>(null);
 
   // Calculations
   const subtotal = backendCalculation?.subtotal ?? cartItems.reduce((sum, item) => sum + item.lineTotal, 0);
@@ -50,9 +53,9 @@ export const RetailCheckoutModal: React.FC<RetailCheckoutModalProps> = ({
 
   const invoiceNumber = lastInvoiceNumber || `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  // Handle Direct Print to Thermal Billing Machine
+  // Handle Direct Print to Thermal Billing Machine: Opens In-App Digital Receipt Slip
   const handlePrintThermalBill = () => {
-    printCustomerBill({
+    const billData: CustomerBillPrintData = {
       orderNumber: invoiceNumber,
       orderType: 'COUNTER',
       invoiceNumber,
@@ -80,7 +83,9 @@ export const RetailCheckoutModal: React.FC<RetailCheckoutModalProps> = ({
       balanceDue: 0,
       outletName: 'KRUNNEX LUXE LIVING',
       outletAddress: 'Boutique Textiles & Apparel • Flagship Store',
-    });
+    };
+    setReceiptSlipData(billData);
+    setIsReceiptModalOpen(true);
   };
 
   // Handle WhatsApp E-Bill Dispatch
@@ -623,6 +628,14 @@ Thank you for supporting handloom & textiles! 🌿`;
           )}
         </div>
       </div>
+
+      {/* In-App Zero-Popup Receipt Slip Modal */}
+      <ReceiptSlipModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        data={receiptSlipData}
+        customerPhone={customerPhone}
+      />
     </div>
   );
 };

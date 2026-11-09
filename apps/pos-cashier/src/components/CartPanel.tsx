@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import type { CartItem, OrderType, CalculationResponse, Order, Bill, OrderItem } from '../types/pos';
 import { getProductImage } from '../utils/productVisuals';
-import { printCustomerBill, type CustomerBillPrintData } from '../utils/printReceipt';
+import type { CustomerBillPrintData } from '../utils/printReceipt';
+import { ReceiptSlipModal } from './ReceiptSlipModal';
 import {
   IconReceipt,
   IconPhone,
@@ -84,6 +85,10 @@ export const CartPanel: React.FC<CartPanelProps> = ({
     whatsappUrl?: string;
   } | null>(null);
 
+  // In-App Digital Receipt Slip Modal State (Eliminates Windows OS print dialog popup)
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
+  const [activeReceiptData, setActiveReceiptData] = useState<CustomerBillPrintData | null>(null);
+
   const handleToggleAutoPrint = (checked: boolean) => {
     setAutoPrintReceipt(checked);
     try {
@@ -119,38 +124,43 @@ export const CartPanel: React.FC<CartPanelProps> = ({
   const tenderedNum = parseFloat(cashTendered) || 0;
   const changeToReturn = Math.max(0, tenderedNum - total);
 
-  // Print Thermal Bill (80mm ESC/POS or Browser Dialog)
+  // Helper to compile active bill data
+  const buildCurrentBillData = (): CustomerBillPrintData => ({
+    orderNumber: invoiceNumber,
+    orderType: 'COUNTER',
+    invoiceNumber,
+    createdAt: new Date().toISOString(),
+    items: items.map((item) => ({
+      name: item.product.name,
+      variantName: item.selectedVariant ? `${item.selectedVariant.name} (HSN: ${item.product.hsnCode || '6302'})` : undefined,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      lineTotal: item.lineTotal,
+    })),
+    subtotal,
+    taxAmount: tax,
+    discountAmount: discount + mrpSavings,
+    totalAmount: total,
+    payments: [
+      {
+        method: paymentMode,
+        amount: total,
+        status: 'SUCCESSFUL',
+        transactionRef: paymentMode === 'UPI' ? 'UPI-QR-COUNTER' : undefined,
+      },
+    ],
+    amountPaid: total,
+    balanceDue: 0,
+    outletName: 'KRUNNEX BOUTIQUE',
+    outletAddress: 'Boutique Textiles & Apparel • Flagship Store',
+  });
+
+  // Print Thermal Bill: Opens In-App Digital Receipt Slip Modal (Zero Windows Dialogs)
   const handlePrintThermalBill = () => {
     if (items.length === 0) return;
-    printCustomerBill({
-      orderNumber: invoiceNumber,
-      orderType: 'COUNTER',
-      invoiceNumber,
-      createdAt: new Date().toISOString(),
-      items: items.map((item) => ({
-        name: item.product.name,
-        variantName: item.selectedVariant ? `${item.selectedVariant.name} (HSN: ${item.product.hsnCode || '6302'})` : undefined,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        lineTotal: item.lineTotal,
-      })),
-      subtotal,
-      taxAmount: tax,
-      discountAmount: discount + mrpSavings,
-      totalAmount: total,
-      payments: [
-        {
-          method: paymentMode,
-          amount: total,
-          status: 'SUCCESSFUL',
-          transactionRef: paymentMode === 'UPI' ? 'UPI-QR-COUNTER' : undefined,
-        },
-      ],
-      amountPaid: total,
-      balanceDue: 0,
-      outletName: 'KRUNNEX BOUTIQUE',
-      outletAddress: 'Boutique Textiles & Apparel • Flagship Store',
-    });
+    const billData = buildCurrentBillData();
+    setActiveReceiptData(billData);
+    setIsReceiptModalOpen(true);
   };
 
   // Dispatch WhatsApp E-Bill
@@ -255,9 +265,19 @@ Thank you for shopping at Krunnex Luxe Retail! 🌿`;
       waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
     }
 
-    // 1. Only print automatically if cashier explicitly enabled Auto-Print in settings
+    // 1. If cashier enabled Auto-Print in settings, attempt silent ESC/POS or open digital receipt
     if (autoPrintReceipt) {
-      printCustomerBill(settledSnapshot);
+      import('../services/thermalPrinterService').then(({ printCustomerBillESCPOS }) => {
+        printCustomerBillESCPOS(settledSnapshot).then((printed) => {
+          if (!printed) {
+            setActiveReceiptData(settledSnapshot);
+            setIsReceiptModalOpen(true);
+          }
+        }).catch(() => {
+          setActiveReceiptData(settledSnapshot);
+          setIsReceiptModalOpen(true);
+        });
+      });
     }
 
     // 2. Play pleasant success tone
@@ -368,7 +388,10 @@ Thank you for shopping at Krunnex Luxe Retail! 🌿`;
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
               type="button"
-              onClick={() => printCustomerBill(lastSettledBill.printData)}
+              onClick={() => {
+                setActiveReceiptData(lastSettledBill.printData);
+                setIsReceiptModalOpen(true);
+              }}
               style={{
                 flex: 1,
                 padding: '7px 10px',
@@ -387,7 +410,7 @@ Thank you for shopping at Krunnex Luxe Retail! 🌿`;
               }}
             >
               <IconPrinter size={15} />
-              <span>1-Click Print Receipt</span>
+              <span>View / Print Receipt Slip</span>
             </button>
             {lastSettledBill.whatsappUrl && (
               <a
@@ -922,6 +945,14 @@ Thank you for shopping at Krunnex Luxe Retail! 🌿`;
           </button>
         </div>
       </div>
+
+      {/* Zero-Popup In-App Digital Receipt Slip Modal */}
+      <ReceiptSlipModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        data={activeReceiptData || (lastSettledBill ? lastSettledBill.printData : null)}
+        customerPhone={customerPhone}
+      />
     </aside>
   );
 };

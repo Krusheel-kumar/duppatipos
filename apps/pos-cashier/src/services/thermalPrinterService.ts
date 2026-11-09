@@ -365,3 +365,13 @@ export async function printTestReceipt(): Promise<boolean> {
 
   return await sendRawToPrinter(builder.getBytes());
 }
+
+/**
+ * Print customer bill directly to paired thermal printer via ESC/POS (Zero OS Dialogs)
+ */
+export async function printCustomerBillESCPOS(data: CustomerBillPrintData): Promise<boolean> {
+  const config = getThermalPrinterConfig();
+  const bytes = buildCustomerBillESCPOS(data, config);
+  return await sendRawToPrinter(bytes);
+}
+

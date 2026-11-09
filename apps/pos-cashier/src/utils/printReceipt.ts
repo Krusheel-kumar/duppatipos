@@ -276,7 +276,12 @@ export async function printKOT(data: KOTPrintData): Promise<void> {
  * Print Official Customer Bill / Tax Invoice / Payment Receipt
  * Shows all financial details, GST taxes, discounts, totals, and payment records.
  */
-export async function printCustomerBill(data: CustomerBillPrintData): Promise<void> {
+export async function printCustomerBill(
+  data: CustomerBillPrintData,
+  options: { allowBrowserPrintDialog?: boolean } = { allowBrowserPrintDialog: true }
+): Promise<boolean> {
+  const allowBrowserPrintDialog = options?.allowBrowserPrintDialog ?? true;
+
   // 1. Attempt Direct Hardware Thermal Printer (WebUSB / WebSerial)
   try {
     const { buildCustomerBillESCPOS, sendRawToPrinter, getThermalPrinterConfig } = await import('../services/thermalPrinterService');
@@ -285,11 +290,16 @@ export async function printCustomerBill(data: CustomerBillPrintData): Promise<vo
       const bytes = buildCustomerBillESCPOS(data, config);
       const printed = await sendRawToPrinter(bytes);
       if (printed) {
-        return; // Successfully printed directly to physical thermal printer!
+        return true; // Successfully printed directly to physical thermal printer!
       }
     }
   } catch (err) {
     console.warn('Direct thermal print for customer bill failed or not connected, falling back to browser dialog:', err);
+  }
+
+  // If browser dialog is disabled, do not trigger OS dialog
+  if (!allowBrowserPrintDialog) {
+    return false;
   }
 
   // 2. Render bill HTML and dispatch via invisible iframe
@@ -472,6 +482,7 @@ export async function printCustomerBill(data: CustomerBillPrintData): Promise<vo
   `;
 
   printHtmlViaHiddenIframe(billHtml);
+  return true;
 }
 
 export interface KOTModificationPrintData {
