@@ -20,8 +20,13 @@ import './Admin.css';
 
 type AdminTab = 'dashboard' | 'menu' | 'orders' | 'billing';
 
-export const AdminLayout: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+interface AdminLayoutProps {
+  onBackToPos?: () => void;
+  initialTab?: AdminTab;
+}
+
+export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToPos, initialTab = 'menu' }) => {
+  const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [selectedOutletId, setSelectedOutletId] = useState<string>(() => {
     return posApiClient.getConfig().outletId || '';
@@ -236,7 +241,7 @@ export const AdminLayout: React.FC = () => {
             className={`admin-nav-btn ${activeTab === 'menu' ? 'active' : ''}`}
             onClick={() => setActiveTab('menu')}
           >
-            <span>🍽️</span> Menu Catalog
+            <span>🏷️</span> Catalog &amp; Inventory
           </button>
           <button
             type="button"
@@ -250,17 +255,37 @@ export const AdminLayout: React.FC = () => {
             className={`admin-nav-btn ${activeTab === 'billing' ? 'active' : ''}`}
             onClick={() => setActiveTab('billing')}
           >
-            <span>💳</span> Billing & Invoices
+            <span>💳</span> Billing &amp; Invoices
           </button>
         </nav>
 
         <div className="admin-sidebar-footer">
-          <a href="/" className="admin-link-btn">
-            ← Cashier POS
-          </a>
-          <a href="/kitchen" className="admin-link-btn">
-            👨‍🍳 Kitchen Display
-          </a>
+          {onBackToPos ? (
+            <button
+              type="button"
+              onClick={onBackToPos}
+              className="admin-link-btn"
+              style={{
+                width: '100%',
+                background: '#047857',
+                color: '#ffffff',
+                border: 'none',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                textAlign: 'center',
+                display: 'block',
+              }}
+            >
+              ← Back to Cashier POS
+            </button>
+          ) : (
+            <a href="/" className="admin-link-btn">
+              ← Cashier POS
+            </a>
+          )}
         </div>
       </aside>
 
@@ -320,6 +345,7 @@ export const AdminLayout: React.FC = () => {
               onCreateProduct={handleCreateProduct}
               onDeactivateProduct={handleDeactivateProduct}
               onCreateAddOn={handleCreateAddOn}
+              onBackToPos={onBackToPos}
             />
           )}
 

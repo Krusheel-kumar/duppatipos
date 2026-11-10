@@ -1214,6 +1214,28 @@ export function App() {
 
           <button
             type="button"
+            className="mode-pill-btn inventory-btn"
+            onClick={() => {
+              if (activeNav === 'admin') {
+                loadCatalog();
+                setActiveNav('new-order');
+              } else {
+                setActiveNav('admin');
+              }
+            }}
+            title="Create Categories, Add Products & Manage Inventory"
+            style={{
+              background: activeNav === 'admin' ? '#064e3b' : '#f8fafc',
+              color: activeNav === 'admin' ? '#6ee7b7' : '#334155',
+              borderColor: activeNav === 'admin' ? '#059669' : '#cbd5e1',
+            }}
+          >
+            <span>📦</span>
+            <span>{activeNav === 'admin' ? '← Back to POS' : '+ Add Products'}</span>
+          </button>
+
+          <button
+            type="button"
             className="mode-pill-btn returns-btn"
             onClick={() => setIsReturnsModalOpen(true)}
             title="Size / Item Exchanges & Store Credit"
@@ -1302,8 +1324,8 @@ export function App() {
               </>
             ) : (
               <>
-                <IconSettings size={15} />
-                <span>Admin</span>
+                <span>📦</span>
+                <span>Inventory &amp; Stock</span>
               </>
             )}
           </button>
@@ -1519,6 +1541,26 @@ export function App() {
                 </button>
               );
             })}
+
+            <button
+              type="button"
+              className="sidebar-cat-btn"
+              style={{
+                color: '#047857',
+                fontWeight: 700,
+                border: '1px dashed #a7f3d0',
+                background: '#ecfdf5',
+                marginTop: '6px',
+              }}
+              onClick={() => {
+                setActiveNav('admin');
+                setIsSidebarOpen(false);
+              }}
+              title="Add New Category or Product"
+            >
+              <span className="sidebar-cat-icon">➕</span>
+              <span className="sidebar-cat-label">+ Add Category / Item</span>
+            </button>
           </div>
 
           {/* Register Status & Logout at bottom */}
@@ -1547,7 +1589,7 @@ export function App() {
         {/* 2. CENTER CONTENT (Admin OR Tracker OR Search + Products/Tables) */}
         {activeNav === 'admin' ? (
           <div className="pos-ref-center-content" style={{ padding: '20px', background: '#f8fafc', overflowY: 'auto' }}>
-            <AdminLayout />
+            <AdminLayout onBackToPos={() => { loadCatalog(); setActiveNav('new-order'); }} />
           </div>
         ) : activeNav === 'running-orders' ? (
           <div className="pos-ref-center-content running-orders-body">

@@ -94,6 +94,85 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
   // Cache of pre-generated QR code data URLs (code -> dataUrl)
   const qrCache = useRef<Record<string, string>>({});
 
+  // Quick Add Item to Sheet State (For fast on-the-fly additions during demos)
+  const [showQuickAddModal, setShowQuickAddModal] = useState<boolean>(false);
+  const [quickName, setQuickName] = useState<string>('');
+  const [quickCategory, setQuickCategory] = useState<string>('Kurtis');
+  const [quickVariant, setQuickVariant] = useState<string>('Royal Blue • Free Size');
+  const [quickPrice, setQuickPrice] = useState<string>('1899');
+  const [quickMrp, setQuickMrp] = useState<string>('2499');
+  const [quickBarcode, setQuickBarcode] = useState<string>('');
+  const [quickQty, setQuickQty] = useState<number>(1);
+
+  const handleGenerateQuickBarcode = () => {
+    const prefix = quickCategory.toLowerCase().includes('kurti')
+      ? 'KRN-KT'
+      : quickCategory.toLowerCase().includes('saree')
+      ? 'KRN-SR'
+      : 'KRN-BS';
+    const randNum = Math.floor(100 + Math.random() * 900);
+    setQuickBarcode(`${prefix}-${randNum}`);
+  };
+
+  const handleAddQuickProductToSheet = () => {
+    if (!quickName.trim()) {
+      alert('Please enter a product name');
+      return;
+    }
+    const bCode = quickBarcode.trim() || `KRN-NEW-${Math.floor(100 + Math.random() * 900)}`;
+    const priceNum = parseFloat(quickPrice) || 1499;
+    const mrpNum = parseFloat(quickMrp) || priceNum * 1.3;
+
+    const newItem: BatchTagItem = {
+      id: `item-quick-${Date.now()}`,
+      productId: `prod-quick-${Date.now()}`,
+      productName: quickName.trim(),
+      categoryName: quickCategory.trim() || 'Textiles',
+      variantName: quickVariant.trim() || 'Standard',
+      barcode: bCode,
+      hsnCode: '6302',
+      mrp: mrpNum,
+      price: priceNum,
+      quantity: quickQty,
+      selected: true,
+    };
+
+    setBatchItems((prev) => [newItem, ...prev]);
+
+    try {
+      const stored = localStorage.getItem('krunnex_admin_products');
+      const parsedProds = stored ? JSON.parse(stored) : [];
+      const prodToSave = {
+        id: newItem.productId,
+        name: newItem.productName,
+        category: { id: `cat-${Date.now()}`, name: newItem.categoryName },
+        basePrice: newItem.price,
+        mrp: newItem.mrp,
+        sku: newItem.barcode,
+        barcode: newItem.barcode,
+        isActive: true,
+        variants: [
+          {
+            name: newItem.variantName,
+            price: newItem.price,
+            mrp: newItem.mrp,
+            barcode: newItem.barcode,
+            sku: newItem.barcode,
+            isActive: true,
+          },
+        ],
+        addOns: [],
+      };
+      localStorage.setItem('krunnex_admin_products', JSON.stringify([prodToSave, ...parsedProds]));
+    } catch {
+      // ignore
+    }
+
+    setQuickName('');
+    setQuickBarcode('');
+    setShowQuickAddModal(false);
+  };
+
   // Batch Tag Items List (All items in inventory ready for batch sheet printing)
   const [batchItems, setBatchItems] = useState<BatchTagItem[]>([]);
 
@@ -923,6 +1002,32 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
                     Deselect All
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleGenerateQuickBarcode();
+                      setShowQuickAddModal(true);
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: '#047857',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 1px 3px rgba(4, 120, 87, 0.3)',
+                    }}
+                    title="Add new product with auto barcode directly to sheet"
+                  >
+                    <span>➕</span>
+                    <span>Add New Product to Sheet</span>
+                  </button>
+
                   <div style={{ height: '16px', width: '1px', background: '#cbd5e1', margin: '0 4px' }} />
 
                   <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>Set Qty:</span>
@@ -1052,6 +1157,146 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Inline Quick Add Product to Sheet Card */}
+              {showQuickAddModal && (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #059669',
+                    borderRadius: '10px',
+                    padding: '14px 18px',
+                    marginBottom: '14px',
+                    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.1)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ fontWeight: 800, color: '#065f46', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>📦</span>
+                      <span>Quick Add Product to Inventory &amp; Print Sheet</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickAddModal(false)}
+                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1rem' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>
+                        Category:
+                      </label>
+                      <input
+                        type="text"
+                        value={quickCategory}
+                        onChange={(e) => setQuickCategory(e.target.value)}
+                        placeholder="e.g. Sarees or Kurtis"
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>
+                        Product Name:
+                      </label>
+                      <input
+                        type="text"
+                        value={quickName}
+                        onChange={(e) => setQuickName(e.target.value)}
+                        placeholder="e.g. Zari Silk Saree"
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>
+                        Color &amp; Size:
+                      </label>
+                      <input
+                        type="text"
+                        value={quickVariant}
+                        onChange={(e) => setQuickVariant(e.target.value)}
+                        placeholder="e.g. Royal Navy • Free Size"
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>
+                          Barcode / SKU:
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleGenerateQuickBarcode}
+                          style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          ⚡ Auto
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={quickBarcode}
+                        onChange={(e) => setQuickBarcode(e.target.value)}
+                        placeholder="e.g. KRN-SR-001"
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontFamily: 'monospace', fontWeight: 700 }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>
+                        Selling Price (₹):
+                      </label>
+                      <input
+                        type="number"
+                        value={quickPrice}
+                        onChange={(e) => setQuickPrice(e.target.value)}
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>
+                        MRP (₹):
+                      </label>
+                      <input
+                        type="number"
+                        value={quickMrp}
+                        onChange={(e) => setQuickMrp(e.target.value)}
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>
+                        Stickers to Print:
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={quickQty}
+                        onChange={(e) => setQuickQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickAddModal(false)}
+                      style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '0.78rem', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddQuickProductToSheet}
+                      style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', background: '#047857', color: '#ffffff', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      ✓ Save Product &amp; Add to Print Sheet
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* View 1: Items Selection Table */}
               {activePreviewTab === 'ITEMS_LIST' ? (

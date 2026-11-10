@@ -13,6 +13,7 @@ interface AdminMenuManagementProps {
   onCreateProduct: (req: ProductRequest) => Promise<void>;
   onDeactivateProduct: (id: string) => Promise<void>;
   onCreateAddOn: (req: AddOnRequest) => Promise<void>;
+  onBackToPos?: () => void;
 }
 
 export const AdminMenuManagement: React.FC<AdminMenuManagementProps> = ({
@@ -26,10 +27,12 @@ export const AdminMenuManagement: React.FC<AdminMenuManagementProps> = ({
   onCreateProduct,
   onDeactivateProduct,
   onCreateAddOn,
+  onBackToPos,
 }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'addons'>('products');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [lastCreatedProduct, setLastCreatedProduct] = useState<Product | null>(null);
 
   // Barcode Label Modal State
   const [selectedProductForBarcode, setSelectedProductForBarcode] = useState<Product | null>(null);
@@ -125,13 +128,30 @@ export const AdminMenuManagement: React.FC<AdminMenuManagementProps> = ({
         isActive: true,
       });
 
+      const createdProd: Product = {
+        id: `prod-${Date.now()}`,
+        name: prodName,
+        description: prodDesc,
+        sku: generatedBarcode,
+        barcode: generatedBarcode,
+        fabric: prodFabric,
+        hsnCode: prodHsn,
+        mrp: parseFloat(prodMrp) || 0,
+        basePrice: parseFloat(prodPrice) || 0,
+        category: categories.find((c) => c.id === (prodCategoryId || categories[0]?.id)),
+        variants: variants || [],
+        addOns: [],
+        isActive: true,
+      };
+
+      setLastCreatedProduct(createdProd);
       setProdName('');
       setProdDesc('');
       setProdBarcode('');
       setProdPrice('2699');
       setProdMrp('3499');
       setShowProductModal(false);
-      setSuccessMsg(`Product "${prodName}" created with barcode ${generatedBarcode}!`);
+      setSuccessMsg(`✓ Product "${createdProd.name}" created with barcode ${generatedBarcode}!`);
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to create product');
     }
@@ -182,7 +202,153 @@ export const AdminMenuManagement: React.FC<AdminMenuManagementProps> = ({
       </div>
 
       {errorMsg && <div className="error-banner">{errorMsg}</div>}
-      {successMsg && <div className="success-banner">{successMsg}</div>}
+      {successMsg && !lastCreatedProduct && <div className="success-banner">{successMsg}</div>}
+
+      {/* Celebratory Interactive Action Banner for Newly Created Product */}
+      {lastCreatedProduct && (
+        <div
+          style={{
+            background: '#ecfdf5',
+            border: '1.5px solid #059669',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.15)',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.15rem' }}>🎉</span>
+              <span style={{ fontWeight: 900, color: '#064e3b', fontSize: '1.02rem' }}>
+                Product "{lastCreatedProduct.name}" Created with Barcode!
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: '0.82rem',
+                color: '#047857',
+                marginTop: '4px',
+                display: 'flex',
+                gap: '14px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span>
+                Category: <strong>{lastCreatedProduct.category?.name || 'Textiles'}</strong>
+              </span>
+              <span>
+                Variant: <strong>{lastCreatedProduct.variants[0]?.name || 'Standard'}</strong>
+              </span>
+              <span>
+                Barcode:{' '}
+                <strong
+                  style={{
+                    fontFamily: 'monospace',
+                    background: '#d1fae5',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    color: '#065f46',
+                  }}
+                >
+                  {lastCreatedProduct.barcode}
+                </strong>
+              </span>
+              <span>
+                Price: <strong>₹{lastCreatedProduct.basePrice}</strong> (MRP: ₹{lastCreatedProduct.mrp})
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setSelectedProductForBarcode(lastCreatedProduct)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '8px',
+                background: '#047857',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 6px rgba(4, 120, 87, 0.3)',
+              }}
+            >
+              <span>🖨️</span>
+              <span>Print Barcode Tag</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsBatchBarcodeModalOpen(true)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '8px',
+                background: '#ffffff',
+                color: '#047857',
+                border: '1.5px solid #059669',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>📑</span>
+              <span>Print A4 Sticker Sheet</span>
+            </button>
+
+            {onBackToPos && (
+              <button
+                type="button"
+                onClick={onBackToPos}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>🛍️</span>
+                <span>Sell in POS Cashier →</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setLastCreatedProduct(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                padding: '0 6px',
+              }}
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* PRODUCTS TAB */}
       {activeTab === 'products' && (
@@ -492,7 +658,16 @@ export const AdminMenuManagement: React.FC<AdminMenuManagementProps> = ({
             </div>
             <form onSubmit={handleCreateProduct}>
               <div className="form-group">
-                <label className="form-label">Category</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label className="form-label" style={{ margin: 0 }}>Category</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryModal(true)}
+                    style={{ background: 'none', border: 'none', color: '#047857', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    + New Category
+                  </button>
+                </div>
                 <select
                   className="form-select"
                   value={prodCategoryId}
