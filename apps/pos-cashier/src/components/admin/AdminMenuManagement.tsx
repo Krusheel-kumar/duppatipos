@@ -33,6 +33,7 @@ export const AdminMenuManagement: React.FC<AdminMenuManagementProps> = ({
 
   // Barcode Label Modal State
   const [selectedProductForBarcode, setSelectedProductForBarcode] = useState<Product | null>(null);
+  const [isBatchBarcodeModalOpen, setIsBatchBarcodeModalOpen] = useState(false);
 
   // New Category State
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -196,6 +197,16 @@ export const AdminMenuManagement: React.FC<AdminMenuManagementProps> = ({
             <div className="admin-header-actions">
               <button type="button" className="btn btn-secondary btn-sm" onClick={onRefresh}>
                 Refresh
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsBatchBarcodeModalOpen(true)}
+                title="Print ready-to-stick A4 barcode sticker sheet for all inventory items"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+              >
+                <span>🖨️</span>
+                <span>Print Barcode Sheet ({products.length})</span>
               </button>
               <button
                 type="button"
@@ -674,12 +685,16 @@ export const AdminMenuManagement: React.FC<AdminMenuManagementProps> = ({
       )}
 
       {/* BARCODE LABEL MODAL */}
-      {selectedProductForBarcode && (
+      {(selectedProductForBarcode || isBatchBarcodeModalOpen) && (
         <BarcodeLabelModal
-          isOpen={Boolean(selectedProductForBarcode)}
-          onClose={() => setSelectedProductForBarcode(null)}
+          isOpen={Boolean(selectedProductForBarcode || isBatchBarcodeModalOpen)}
+          onClose={() => {
+            setSelectedProductForBarcode(null);
+            setIsBatchBarcodeModalOpen(false);
+          }}
           products={products}
           selectedProduct={selectedProductForBarcode}
+          initialMode={selectedProductForBarcode ? 'SINGLE' : 'BATCH'}
         />
       )}
     </div>
