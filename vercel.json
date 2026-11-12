@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "[ -d apps/pos-cashier ] && (cd apps/pos-cashier && npm run build && mkdir -p ../../dist && cp -r dist/* ../../dist/) || npm run build",
+  "buildCommand": "[ -d apps/pos-cashier ] && (npm run build --prefix apps/pos-cashier && cp -r apps/pos-cashier/dist ./dist) || npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
