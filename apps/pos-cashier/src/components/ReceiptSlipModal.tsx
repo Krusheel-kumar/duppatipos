@@ -46,18 +46,29 @@ export const ReceiptSlipModal: React.FC<ReceiptSlipModalProps> = ({
       )
       .join('\n');
 
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://krunnex-pos.vercel.app';
+    const invNum = data.invoiceNumber || data.orderNumber;
+    let liveBillUrl = `${baseOrigin}/bill?id=${invNum}`;
+    try {
+      const enc = btoa(encodeURIComponent(JSON.stringify(data)));
+      liveBillUrl = `${baseOrigin}/bill?id=${invNum}&data=${enc}`;
+    } catch {}
+
     const msg = `🌿 *KRUNNEX LUXE RETAIL - DIGITAL BILL*
-Invoice: #${data.invoiceNumber || data.orderNumber}
+Invoice: #${invNum}
 Date: ${dateFormatted} ${timeFormatted}
 Store: ${data.outletName || 'Krunnex Luxe Retail'}
-----------------------------------------
+────────────────────────────
 ${itemsSummary}
-----------------------------------------
+────────────────────────────
 Subtotal: ₹${data.subtotal.toLocaleString('en-IN')}
 GST (5% Textile): ₹${data.taxAmount.toLocaleString('en-IN')}
 ${data.discountAmount > 0 ? `Savings / Discount: -₹${data.discountAmount.toLocaleString('en-IN')}\n` : ''}*Total Paid: ₹${data.totalAmount.toLocaleString('en-IN')}*
 Payment Mode: ${data.payments[0]?.method || 'UPI'}
-----------------------------------------
+────────────────────────────
+👉 *Tap to view your Digital Tax Invoice:*
+${liveBillUrl}
+
 🔄 *Exchange Policy:* 7 days exchange with this digital bill.
 Thank you for shopping with us! 🌿`;
 

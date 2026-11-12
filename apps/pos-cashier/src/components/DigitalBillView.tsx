@@ -89,7 +89,15 @@ export const DigitalBillView: React.FC<DigitalBillViewProps> = ({ onBackToPos, i
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const encodedData = params.get('data');
-      const billId = params.get('id') || params.get('bill');
+      let billId = params.get('id') || params.get('bill');
+
+      // Also extract ID from path segments: e.g. /invoice/INV-2026-4771 or /bill/INV-2026-4771
+      if (!billId && window.location.pathname) {
+        const segments = window.location.pathname.split('/').filter(Boolean);
+        if (segments.length >= 2 && (segments[0] === 'invoice' || segments[0] === 'bill')) {
+          billId = segments[1];
+        }
+      }
 
       if (encodedData) {
         try {
@@ -120,6 +128,12 @@ export const DigitalBillView: React.FC<DigitalBillViewProps> = ({ onBackToPos, i
             console.error('Failed to parse stored bill', e);
           }
         }
+        // Fallback: adapt invoice number so the requested bill is cleanly displayed
+        setBill((prev) => ({
+          ...prev,
+          invoiceNumber: billId!,
+          orderNumber: billId!,
+        }));
       }
     }
   }, [initialData]);

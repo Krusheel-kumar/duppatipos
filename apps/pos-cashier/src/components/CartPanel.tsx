@@ -176,24 +176,62 @@ export const CartPanel: React.FC<CartPanelProps> = ({
       )
       .join('\n');
 
-    const msg = `🛍️ *KRUNNEX BOUTIQUE*
-Thank you for shopping with us${customerName ? `, ${customerName}` : ''}! ✨
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://krunnex-pos.vercel.app';
+    const billSnapshot = {
+      invoiceNumber,
+      orderNumber: invoiceNumber,
+      createdAt: new Date().toISOString(),
+      storeName: 'KRUNNEX LUXE RETAIL',
+      storeAddress: 'Road No. 36, Jubilee Hills, Hyderabad - 500033',
+      storeGstin: '36AABCU9603R1ZM',
+      storePhone: '+91 98765 43210',
+      customerName: customerName.trim() || undefined,
+      customerPhone: customerPhone.trim() || undefined,
+      items: items.map((item) => ({
+        name: item.product.name,
+        variantName: item.selectedVariant ? item.selectedVariant.name : undefined,
+        hsnCode: item.product.hsnCode || '6302',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+      })),
+      subtotal,
+      taxAmount: tax,
+      discountAmount: discount + mrpSavings,
+      totalAmount: total,
+      paymentMode,
+    };
 
-📄 *Tax Invoice: #${invoiceNumber}*
-🗓️ Date: ${new Date().toLocaleDateString('en-IN')} | ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-----------------------------------------
+    try {
+      localStorage.setItem(`krunnex_bill_${invoiceNumber}`, JSON.stringify(billSnapshot));
+    } catch {}
+
+    let liveBillUrl = `${baseOrigin}/bill?id=${invoiceNumber}`;
+    try {
+      const enc = btoa(encodeURIComponent(JSON.stringify(billSnapshot)));
+      liveBillUrl = `${baseOrigin}/bill?id=${invoiceNumber}&data=${enc}`;
+    } catch {}
+
+    const msg = `✨ *KRUNNEX LUXE RETAIL* ✨
+📍 Road No. 36, Jubilee Hills, Hyderabad
+GSTIN: 36AABCU9603R1ZM
+────────────────────────────
+🧾 *Tax Invoice:* #${invoiceNumber}
+👤 *Customer:* ${customerName ? customerName : 'Valued Guest'}
+📅 *Date:* ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+────────────────────────────
+🛍️ *ITEMS PURCHASED:*
 ${itemsSummary}
-----------------------------------------
-Subtotal: ₹${subtotal.toLocaleString('en-IN')}
-GST (5% Textile): ₹${tax.toLocaleString('en-IN')}
-${discount > 0 ? `Special Discount: -₹${discount.toLocaleString('en-IN')}\n` : ''}*Total Amount Paid: ₹${total.toLocaleString('en-IN')}*
-Payment Mode: ${paymentMode}
-----------------------------------------
-📄 *Digital E-Receipt:*
-https://krunnex.store/invoice/${invoiceNumber}
+────────────────────────────
+💰 *Subtotal:* ₹${subtotal.toLocaleString('en-IN')}
+🏷️ *GST (5% Textile):* ₹${tax.toLocaleString('en-IN')}
+${discount > 0 ? `🎉 *Special Discount:* -₹${discount.toLocaleString('en-IN')}\n` : ''}⭐ *TOTAL AMOUNT PAID:* ₹${total.toLocaleString('en-IN')} (${paymentMode})
+────────────────────────────
+👉 *Tap to view your Digital Tax Invoice:*
+${liveBillUrl}
 
-🔄 *Exchange Policy:* 7 days exchange with this digital bill.
-Thank you for supporting artisanal textiles! 🌿`;
+🌿 *Exchange Policy:* 7 days exchange with this digital bill.
+🙏 *Thank you for shopping with us! Visit again.*`;
 
     const encoded = encodeURIComponent(msg);
     const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
@@ -231,7 +269,7 @@ Thank you for supporting artisanal textiles! 🌿`;
       ],
       amountPaid: total,
       balanceDue: 0,
-      outletName: 'KRUNNEX BOUTIQUE',
+      outletName: 'KRUNNEX LUXE RETAIL',
       outletAddress: 'Boutique Textiles & Apparel • Flagship Store',
     };
 
@@ -239,27 +277,39 @@ Thank you for supporting artisanal textiles! 🌿`;
     if (customerPhone.trim()) {
       const phone = customerPhone.replace(/\D/g, '');
       const cleanPhone = phone.length === 10 ? `91${phone}` : phone;
+      const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://krunnex-pos.vercel.app';
+      
+      let liveBillUrl = `${baseOrigin}/bill?id=${invoiceNumber}`;
+      try {
+        const enc = btoa(encodeURIComponent(JSON.stringify(settledSnapshot)));
+        liveBillUrl = `${baseOrigin}/bill?id=${invoiceNumber}&data=${enc}`;
+        localStorage.setItem(`krunnex_bill_${invoiceNumber}`, JSON.stringify(settledSnapshot));
+      } catch {}
+
       const itemsSummary = items
         .map(
           (i) =>
             `• ${i.quantity}x ${i.product.name} (${i.selectedVariant?.name || 'Standard'}) - ₹${i.lineTotal.toLocaleString('en-IN')}`
         )
         .join('\n');
-      const msg = `🌿 *KRUNNEX LUXE RETAIL - OFFICIAL INVOICE*
-----------------------------------------
-Invoice No: #${invoiceNumber}
-Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-Cashier: Counter #01 (John Doe)
-----------------------------------------
+      const msg = `✨ *KRUNNEX LUXE RETAIL - OFFICIAL INVOICE* ✨
+────────────────────────────
+🧾 Invoice No: #${invoiceNumber}
+📅 Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+👤 Cashier: Counter #01 (John Doe)
+────────────────────────────
+🛍️ *ITEMS:*
 ${itemsSummary}
-----------------------------------------
-Subtotal: ₹${subtotal.toLocaleString('en-IN')}
-GST (5% Textile): ₹${tax.toLocaleString('en-IN')}
-${discount > 0 ? `Special Discount: -₹${discount.toLocaleString('en-IN')}\n` : ''}*Total Amount Paid: ₹${total.toLocaleString('en-IN')}*
-Payment Mode: ${paymentMode}
-----------------------------------------
-🔄 *Exchange Policy:* 7 days exchange with this digital bill.
-Thank you for shopping at Krunnex Luxe Retail! 🌿`;
+────────────────────────────
+💰 Subtotal: ₹${subtotal.toLocaleString('en-IN')}
+🏷️ GST (5% Textile): ₹${tax.toLocaleString('en-IN')}
+${discount > 0 ? `🎉 Special Discount: -₹${discount.toLocaleString('en-IN')}\n` : ''}⭐ *Total Amount Paid: ₹${total.toLocaleString('en-IN')}* (${paymentMode})
+────────────────────────────
+👉 *Tap to view your Digital Tax Invoice:*
+${liveBillUrl}
+
+🌿 *Exchange Policy:* 7 days exchange with this digital bill.
+🙏 Thank you for shopping at Krunnex Luxe Retail!`;
 
       const encoded = encodeURIComponent(msg);
       waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
