@@ -13,6 +13,7 @@ import { AdminLayout } from './components/admin/AdminLayout';
 import { CameraBarcodeScannerModal } from './components/CameraBarcodeScannerModal';
 import { BarcodeLabelModal } from './components/BarcodeLabelModal';
 import { RetailCheckoutModal } from './components/RetailCheckoutModal';
+import { DigitalBillView } from './components/DigitalBillView';
 import { DailyClosingReportModal } from './components/DailyClosingReportModal';
 import { ReturnsExchangesModal } from './components/ReturnsExchangesModal';
 import { MobileScannerApp } from './components/MobileScannerApp';
@@ -1061,6 +1062,17 @@ export function App() {
   if (currentPath === '/kitchen') {
     return (
       <KitchenDisplay
+        onBackToPos={() => {
+          window.history.pushState({}, '', '/');
+          setCurrentPath('/');
+        }}
+      />
+    );
+  }
+
+  if (currentPath.startsWith('/bill') || currentPath.startsWith('/invoice')) {
+    return (
+      <DigitalBillView
         onBackToPos={() => {
           window.history.pushState({}, '', '/');
           setCurrentPath('/');

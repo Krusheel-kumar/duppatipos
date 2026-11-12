@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
 import type { CartItem, CalculationResponse } from '../types/pos';
 import type { CustomerBillPrintData } from '../utils/printReceipt';
+import type { DigitalBillData } from './DigitalBillView';
 import { ReceiptSlipModal } from './ReceiptSlipModal';
 import { IconPrinter, IconWhatsApp, IconQrCode, IconCash, IconCard, IconSwap, IconCreditNote, IconTag } from './icons';
 
@@ -41,6 +43,8 @@ export const RetailCheckoutModal: React.FC<RetailCheckoutModalProps> = ({
   const [lastInvoiceNumber, setLastInvoiceNumber] = useState<string>('');
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
   const [receiptSlipData, setReceiptSlipData] = useState<CustomerBillPrintData | null>(null);
+  const [customerQrDataUrl, setCustomerQrDataUrl] = useState<string>('');
+  const [generatedBillUrl, setGeneratedBillUrl] = useState<string>('');
 
   // Calculations
   const subtotal = backendCalculation?.subtotal ?? cartItems.reduce((sum, item) => sum + item.lineTotal, 0);
@@ -52,6 +56,80 @@ export const RetailCheckoutModal: React.FC<RetailCheckoutModalProps> = ({
   const totalAmount = backendCalculation?.totalAmount ?? subtotal;
 
   const invoiceNumber = lastInvoiceNumber || `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // Build the complete DigitalBillData object
+  const createBillPayload = (): DigitalBillData => {
+    return {
+      invoiceNumber,
+      orderNumber: invoiceNumber,
+      createdAt: new Date().toISOString(),
+      storeName: 'KRUNNEX LUXE RETAIL',
+      storeAddress: 'Road No. 36, Jubilee Hills, Hyderabad - 500033',
+      storeGstin: '36AABCU9603R1ZM',
+      storePhone: '+91 98765 43210',
+      customerName: customerName.trim() || undefined,
+      customerPhone: customerPhone.trim() || undefined,
+      items: cartItems.map((item) => ({
+        name: item.product.name,
+        variantName: item.selectedVariant ? item.selectedVariant.name : undefined,
+        hsnCode: item.product.hsnCode || '6302',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+      })),
+      subtotal,
+      taxAmount: backendCalculation?.taxAmount ?? Math.round(subtotal * 0.05 * 100) / 100,
+      discountAmount: totalSavings,
+      totalAmount,
+      paymentMode,
+      paymentRef: upiRef ? `UPI/${upiRef}` : undefined,
+    };
+  };
+
+  // Build live URL for the digital bill
+  const getLiveBillUrl = (payload?: DigitalBillData): string => {
+    const data = payload || createBillPayload();
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://krunnex-pos.vercel.app';
+    try {
+      const jsonStr = JSON.stringify(data);
+      const encoded = btoa(encodeURIComponent(jsonStr));
+      return `${baseOrigin}/bill?id=${data.invoiceNumber}&data=${encoded}`;
+    } catch {
+      return `${baseOrigin}/bill?id=${data.invoiceNumber}`;
+    }
+  };
+
+  // Generate on-screen customer QR code when payment succeeds
+  useEffect(() => {
+    if (isSuccess) {
+      const payload = createBillPayload();
+      const url = getLiveBillUrl(payload);
+      setGeneratedBillUrl(url);
+
+      // Save to localStorage for instant local retrieval
+      try {
+        localStorage.setItem(`krunnex_bill_${payload.invoiceNumber}`, JSON.stringify(payload));
+      } catch (e) {
+        console.warn('Failed saving bill to localStorage', e);
+      }
+
+      // Also attempt background sync to Vercel Serverless API
+      try {
+        fetch('/api/bills', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(() => {});
+      } catch {
+        // Safe to ignore if serverless is not running locally
+      }
+
+      // Generate visual QR code
+      QRCode.toDataURL(url, { width: 180, margin: 1 })
+        .then(setCustomerQrDataUrl)
+        .catch((err) => console.error('Failed generating QR', err));
+    }
+  }, [isSuccess]);
 
   // Handle Direct Print to Thermal Billing Machine: Opens In-App Digital Receipt Slip
   const handlePrintThermalBill = () => {
@@ -81,42 +159,46 @@ export const RetailCheckoutModal: React.FC<RetailCheckoutModalProps> = ({
       ],
       amountPaid: totalAmount,
       balanceDue: 0,
-      outletName: 'KRUNNEX LUXE LIVING',
+      outletName: 'KRUNNEX LUXE RETAIL',
       outletAddress: 'Boutique Textiles & Apparel • Flagship Store',
     };
     setReceiptSlipData(billData);
     setIsReceiptModalOpen(true);
   };
 
-  // Handle WhatsApp E-Bill Dispatch
+  // Handle WhatsApp E-Bill Dispatch with Real-Time Template & Live Bill Link
   const handleSendWhatsAppBill = () => {
     const phone = customerPhone.replace(/\D/g, '');
     const cleanPhone = phone.length === 10 ? `91${phone}` : phone;
+    const billUrl = generatedBillUrl || getLiveBillUrl();
 
     const itemsSummary = cartItems
       .map(
         (i) =>
-          `• ${i.quantity}x ${i.product.name} (${i.selectedVariant?.name || 'Standard'}) - Rs. ${i.lineTotal.toFixed(2)}`
+          `• ${i.quantity}x ${i.product.name} (${i.selectedVariant?.name || 'Standard'}) = ₹${i.lineTotal.toFixed(2)}`
       )
       .join('\n');
 
-    const msg = `🛍️ *KRUNNEX LUXE LIVING*
-Thank you for shopping with us${customerName ? `, ${customerName}` : ''}! ✨
-
-📄 *Tax Invoice: #${invoiceNumber}*
-🗓️ Date: ${new Date().toLocaleDateString()} | ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-----------------------------------------
+    const msg = `✨ *KRUNNEX LUXE RETAIL* ✨
+📍 Road No. 36, Jubilee Hills, Hyderabad
+GSTIN: 36AABCU9603R1ZM
+────────────────────────────
+🧾 *Tax Invoice:* #${invoiceNumber}
+👤 *Customer:* ${customerName ? customerName : 'Valued Guest'}
+📅 *Date:* ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+────────────────────────────
+🛍️ *ITEMS PURCHASED:*
 ${itemsSummary}
-----------------------------------------
-Subtotal: Rs. ${subtotal.toFixed(2)}
-${totalSavings > 0 ? `🎉 Total Savings: -Rs. ${totalSavings.toFixed(2)}\n` : ''}*Total Amount Paid: Rs. ${totalAmount.toFixed(2)}*
-Payment Mode: ${paymentMode}
-----------------------------------------
-📄 *Download / View Digital E-Receipt:*
-https://krunnex.store/invoice/${invoiceNumber}
+────────────────────────────
+💰 *Subtotal:* ₹${subtotal.toFixed(2)}
+🏷️ *GST (5% Textile):* ₹${(backendCalculation?.taxAmount ?? subtotal * 0.05).toFixed(2)}
+${totalSavings > 0 ? `🎉 *Savings / MRP Discount:* -₹${totalSavings.toFixed(2)}\n` : ''}⭐ *TOTAL AMOUNT PAID:* ₹${totalAmount.toFixed(2)} (${paymentMode})
+────────────────────────────
+👉 *Tap to view your Digital Tax Invoice:*
+${billUrl}
 
-🔄 *Exchange Policy:* 7 days exchange with this digital bill.
-Thank you for supporting handloom & textiles! 🌿`;
+🌿 *Exchange Policy:* 7 days return/size exchange with this digital bill.
+🙏 *Thank you for shopping with us! Visit again.*`;
 
     const encoded = encodeURIComponent(msg);
     const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
@@ -151,7 +233,7 @@ Thank you for supporting handloom & textiles! 🌿`;
       <div
         className="pos-ref-modal-content"
         style={{
-          maxWidth: '620px',
+          maxWidth: '640px',
           width: '92%',
           background: '#ffffff',
           borderRadius: '16px',
@@ -173,7 +255,7 @@ Thank you for supporting handloom & textiles! 🌿`;
         >
           <div>
             <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
-              {isSuccess ? '✓ Payment Completed & Bill Issued' : 'Settle Bill & Customer Receipt'}
+              {isSuccess ? '✓ Payment Completed & Digital Bill Ready' : 'Settle Bill & Customer Receipt'}
             </h3>
             <p style={{ margin: 0, fontSize: '0.8rem', color: isSuccess ? '#a7f3d0' : '#94a3b8' }}>
               Invoice #{invoiceNumber} • {cartItems.length} line item(s)
@@ -198,39 +280,45 @@ Thank you for supporting handloom & textiles! 🌿`;
         <div style={{ padding: '20px 24px' }}>
           {isSuccess ? (
             /* Post Payment Success Actions */
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '3.5rem', marginBottom: '8px' }}>🎉</div>
-              <h2 style={{ margin: '0 0 6px 0', fontSize: '1.4rem', color: '#0f172a' }}>
+            <div style={{ textAlign: 'center', padding: '10px 0' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '4px' }}>🎉</div>
+              <h2 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', color: '#0f172a', fontWeight: 900 }}>
                 ₹{totalAmount.toFixed(2)} Received via {paymentMode}
               </h2>
-              <p style={{ margin: '0 0 24px 0', fontSize: '0.85rem', color: '#64748b' }}>
-                Stock decremented automatically. Choose receipt options below:
+              <p style={{ margin: '0 0 16px 0', fontSize: '0.82rem', color: '#64748b' }}>
+                Stock updated automatically. Send the real-time bill to customer or let them scan below:
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '24px' }}>
-                <button
-                  type="button"
-                  onClick={handlePrintThermalBill}
+              {/* Customer Mobile Verification Bar (Allows modifying mobile number right here) */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', minWidth: '95px', textAlign: 'left' }}>
+                  Customer Mobile:
+                </div>
+                <input
+                  type="tel"
+                  placeholder="Enter 10-digit mobile"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
                   style={{
-                    background: '#0f172a',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '14px',
-                    borderRadius: '10px',
+                    flex: 1,
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.88rem',
                     fontWeight: 700,
-                    fontSize: '0.95rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(15, 23, 42, 0.3)',
                   }}
-                >
-                  <IconPrinter size={18} />
-                  <span>Print Thermal Bill</span>
-                </button>
-
+                />
                 <button
                   type="button"
                   onClick={handleSendWhatsAppBill}
@@ -238,20 +326,121 @@ Thank you for supporting handloom & textiles! 🌿`;
                     background: '#25d366',
                     color: '#ffffff',
                     border: 'none',
-                    padding: '14px',
-                    borderRadius: '10px',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 6px rgba(37, 211, 102, 0.3)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <IconWhatsApp size={16} />
+                  <span>Send WhatsApp</span>
+                </button>
+              </div>
+
+              {/* On-Screen Customer Self-Scan QR Code Card */}
+              <div
+                style={{
+                  background: '#ecfdf5',
+                  border: '1.5px dashed #059669',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  marginBottom: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-around',
+                  gap: '16px',
+                }}
+              >
+                <div style={{ textAlign: 'left', maxWidth: '280px' }}>
+                  <div
+                    style={{
+                      display: 'inline-block',
+                      background: '#047857',
+                      color: '#ffffff',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      textTransform: 'uppercase',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Customer Self-Scan
+                  </div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#065f46', marginBottom: '4px' }}>
+                    Scan with Phone Camera
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#047857', lineHeight: 1.4 }}>
+                    Customer points camera to instantly open their digital tax invoice &amp; save PDF on their phone!
+                  </div>
+                </div>
+
+                {customerQrDataUrl ? (
+                  <div style={{ background: '#ffffff', padding: '6px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                    <img
+                      src={customerQrDataUrl}
+                      alt="Customer Bill QR"
+                      style={{ width: '105px', height: '105px', display: 'block' }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Generating QR...</div>
+                )}
+              </div>
+
+              {/* Action Buttons Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  onClick={handlePrintThermalBill}
+                  style={{
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px',
+                    borderRadius: '8px',
                     fontWeight: 700,
-                    fontSize: '0.95rem',
+                    fontSize: '0.88rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(37, 211, 102, 0.3)',
                   }}
                 >
-                  <IconWhatsApp size={18} />
-                  <span>Send WhatsApp E-Bill</span>
+                  <IconPrinter size={16} />
+                  <span>Print Thermal Bill</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = generatedBillUrl || getLiveBillUrl();
+                    window.open(url, '_blank');
+                  }}
+                  style={{
+                    background: '#ffffff',
+                    color: '#0f172a',
+                    border: '1.5px solid #0f172a',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span>👁️</span>
+                  <span>View Customer Bill</span>
                 </button>
               </div>
 
@@ -259,13 +448,14 @@ Thank you for supporting handloom & textiles! 🌿`;
                 type="button"
                 onClick={onClose}
                 style={{
+                  width: '100%',
                   background: '#f1f5f9',
                   color: '#334155',
                   border: '1px solid #cbd5e1',
                   padding: '10px 24px',
                   borderRadius: '8px',
                   fontWeight: 700,
-                  fontSize: '0.9rem',
+                  fontSize: '0.88rem',
                   cursor: 'pointer',
                 }}
               >
