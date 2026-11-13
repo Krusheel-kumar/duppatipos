@@ -54,10 +54,10 @@ export const ReceiptSlipModal: React.FC<ReceiptSlipModalProps> = ({
       liveBillUrl = `${baseOrigin}/bill?id=${invNum}&data=${enc}`;
     } catch {}
 
-    const msg = `🌿 *KRUNNEX LUXE RETAIL - DIGITAL BILL*
+    const msg = `✨ *DUPPATI - DIGITAL BILL*
 Invoice: #${invNum}
 Date: ${dateFormatted} ${timeFormatted}
-Store: ${data.outletName || 'Krunnex Luxe Retail'}
+Store: ${data.outletName || 'DUPPATI'}
 ────────────────────────────
 ${itemsSummary}
 ────────────────────────────

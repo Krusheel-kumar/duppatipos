@@ -151,7 +151,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
     ],
     amountPaid: total,
     balanceDue: 0,
-    outletName: 'KRUNNEX BOUTIQUE',
+    outletName: 'DUPPATI',
     outletAddress: 'Boutique Textiles & Apparel • Flagship Store',
   });
 
