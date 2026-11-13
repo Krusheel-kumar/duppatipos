@@ -41,7 +41,7 @@ const DEFAULT_DEMO_BILL: DigitalBillData = {
   invoiceNumber: 'INV-2026-8492',
   orderNumber: 'ORD-8492',
   createdAt: new Date().toISOString(),
-  storeName: 'KRUNNEX LUXE RETAIL',
+  storeName: 'DUPPATI',
   storeAddress: 'Road No. 36, Jubilee Hills, Hyderabad - 500033',
   storeGstin: '36AABCU9603R1ZM',
   storePhone: '+91 98765 43210',
@@ -325,36 +325,39 @@ ${window.location.href}
           <div
             style={{
               display: 'inline-block',
-              background: '#ecfdf5',
-              color: '#065f46',
-              border: '1px solid #a7f3d0',
-              padding: '3px 10px',
+              background: '#000000',
+              color: '#ffffff',
+              border: 'none',
+              padding: '4px 12px',
               borderRadius: '20px',
-              fontSize: '0.68rem',
-              fontWeight: 800,
+              fontSize: '0.72rem',
+              fontWeight: 900,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
               marginBottom: '8px',
             }}
           >
-            Official E-Receipt
+            Official Tax Invoice
           </div>
           <h1
             style={{
               margin: '0 0 4px 0',
-              fontSize: '1.45rem',
-              fontWeight: 900,
-              letterSpacing: '0.04em',
-              color: '#0f172a',
+              fontSize: '2.2rem',
+              fontWeight: 950,
+              letterSpacing: '0.08em',
+              color: '#000000',
+              textTransform: 'uppercase',
+              lineHeight: 1.1,
             }}
           >
-            {bill.storeName}
+            {bill.storeName || 'DUPPATI'}
           </h1>
           <p
             style={{
               margin: '0 0 4px 0',
-              fontSize: '0.78rem',
-              color: '#475569',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              color: '#000000',
               lineHeight: 1.4,
             }}
           >
@@ -362,11 +365,12 @@ ${window.location.href}
           </p>
           <div
             style={{
-              fontSize: '0.72rem',
-              color: '#64748b',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              color: '#000000',
               display: 'flex',
               justifyContent: 'center',
-              gap: '12px',
+              gap: '14px',
               flexWrap: 'wrap',
               marginTop: '4px',
             }}
@@ -379,36 +383,38 @@ ${window.location.href}
         {/* Invoice & Customer Meta Bar */}
         <div
           style={{
-            padding: '12px 20px',
-            background: '#f8fafc',
-            borderBottom: '1px solid #e2e8f0',
-            fontSize: '0.78rem',
+            padding: '14px 20px',
+            background: '#ffffff',
+            borderBottom: '2px solid #000000',
+            fontSize: '0.86rem',
+            fontWeight: 800,
+            color: '#000000',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
             <div>
-              <span style={{ color: '#64748b' }}>Invoice No: </span>
-              <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>#{bill.invoiceNumber}</strong>
+              <span style={{ color: '#000000' }}>Invoice No: </span>
+              <strong style={{ color: '#000000', fontFamily: 'monospace', fontSize: '0.95rem' }}>#{bill.invoiceNumber}</strong>
             </div>
             <div
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
-                background: '#ecfdf5',
-                color: '#047857',
-                padding: '2px 8px',
+                background: '#000000',
+                color: '#ffffff',
+                padding: '3px 10px',
                 borderRadius: '12px',
-                fontSize: '0.72rem',
-                fontWeight: 800,
+                fontSize: '0.76rem',
+                fontWeight: 900,
               }}
             >
-              <IconCheckCircle size={12} />
+              <IconCheckCircle size={13} />
               <span>PAID</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#000000', fontSize: '0.84rem' }}>
             <div>
               <span>Date: </span>
               <strong>{dateFormatted} • {timeFormatted}</strong>
@@ -416,7 +422,7 @@ ${window.location.href}
             {bill.customerName && (
               <div>
                 <span>Billed To: </span>
-                <strong style={{ color: '#0f172a' }}>{bill.customerName}</strong>
+                <strong style={{ color: '#000000' }}>{bill.customerName}</strong>
               </div>
             )}
           </div>
@@ -424,38 +430,38 @@ ${window.location.href}
 
         {/* Itemized Table */}
         <div style={{ padding: '16px 20px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1.5px solid #cbd5e1', textAlign: 'left', color: '#64748b' }}>
-                <th style={{ padding: '6px 0', fontWeight: 700, width: '52%' }}>Item Details</th>
-                <th style={{ padding: '6px 4px', fontWeight: 700, textAlign: 'center', width: '12%' }}>Qty</th>
-                <th style={{ padding: '6px 4px', fontWeight: 700, textAlign: 'right', width: '16%' }}>Rate</th>
-                <th style={{ padding: '6px 0', fontWeight: 700, textAlign: 'right', width: '20%' }}>Amount</th>
+              <tr style={{ borderBottom: '2.5px solid #000000', textAlign: 'left', color: '#000000', fontSize: '0.86rem' }}>
+                <th style={{ padding: '6px 0', fontWeight: 950, width: '52%' }}>Item Details</th>
+                <th style={{ padding: '6px 4px', fontWeight: 950, textAlign: 'center', width: '12%' }}>Qty</th>
+                <th style={{ padding: '6px 4px', fontWeight: 950, textAlign: 'right', width: '16%' }}>Rate</th>
+                <th style={{ padding: '6px 0', fontWeight: 950, textAlign: 'right', width: '20%' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
               {bill.items.map((item, idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
                   <td style={{ padding: '10px 0 8px 0', verticalAlign: 'top' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>{item.name}</div>
+                    <div style={{ fontWeight: 900, color: '#000000', fontSize: '0.98rem', lineHeight: 1.3 }}>{item.name}</div>
                     {item.variantName && (
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                        {item.variantName}
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginTop: '2px' }}>
+                        • {item.variantName}
                       </div>
                     )}
                     {item.hsnCode && (
-                      <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b' }}>
                         HSN: {item.hsnCode}
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: '10px 4px 8px 4px', textAlign: 'center', verticalAlign: 'top', fontWeight: 600 }}>
+                  <td style={{ padding: '10px 4px 8px 4px', textAlign: 'center', verticalAlign: 'top', fontWeight: 900, fontSize: '0.95rem', color: '#000000' }}>
                     {item.quantity}
                   </td>
-                  <td style={{ padding: '10px 4px 8px 4px', textAlign: 'right', verticalAlign: 'top', color: '#475569' }}>
+                  <td style={{ padding: '10px 4px 8px 4px', textAlign: 'right', verticalAlign: 'top', fontWeight: 800, fontSize: '0.92rem', color: '#000000' }}>
                     ₹{item.unitPrice.toFixed(2)}
                   </td>
-                  <td style={{ padding: '10px 0 8px 0', textAlign: 'right', verticalAlign: 'top', fontWeight: 800, color: '#0f172a' }}>
+                  <td style={{ padding: '10px 0 8px 0', textAlign: 'right', verticalAlign: 'top', fontWeight: 950, fontSize: '1.05rem', color: '#000000' }}>
                     ₹{item.lineTotal.toFixed(2)}
                   </td>
                 </tr>
@@ -466,27 +472,29 @@ ${window.location.href}
           {/* Pricing Totals Box */}
           <div
             style={{
-              borderTop: '2px solid #e2e8f0',
+              borderTop: '2.5px solid #000000',
               marginTop: '12px',
               paddingTop: '10px',
-              fontSize: '0.8rem',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              color: '#000000',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: '#475569' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
               <span>Subtotal:</span>
-              <span>₹{bill.subtotal.toFixed(2)}</span>
+              <span style={{ fontWeight: 900 }}>₹{bill.subtotal.toFixed(2)}</span>
             </div>
 
             {bill.discountAmount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: '#059669', fontWeight: 600 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontWeight: 900 }}>
                 <span>Savings / Discount:</span>
                 <span>-₹{bill.discountAmount.toFixed(2)}</span>
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: '#475569' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
               <span>Tax (CGST 2.5% + SGST 2.5%):</span>
-              <span>₹{bill.taxAmount.toFixed(2)}</span>
+              <span style={{ fontWeight: 900 }}>₹{bill.taxAmount.toFixed(2)}</span>
             </div>
 
             {/* Net Total Box */}
@@ -495,22 +503,23 @@ ${window.location.href}
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                background: '#ecfdf5',
-                border: '1.5px solid #a7f3d0',
+                background: '#ffffff',
+                border: '2.5px solid #000000',
                 borderRadius: '8px',
-                padding: '10px 14px',
-                margin: '10px 0',
+                padding: '12px 16px',
+                margin: '12px 0',
+                color: '#000000',
               }}
             >
               <div>
-                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, color: '#065f46' }}>
+                <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: 950 }}>
                   Total Amount Paid
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#047857' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>
                   Via {bill.paymentMode} {bill.paymentRef ? `(${bill.paymentRef})` : ''}
                 </div>
               </div>
-              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#065f46' }}>
+              <div style={{ fontSize: '1.65rem', fontWeight: 950, color: '#000000' }}>
                 ₹{bill.totalAmount.toFixed(2)}
               </div>
             </div>

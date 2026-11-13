@@ -181,7 +181,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
       invoiceNumber,
       orderNumber: invoiceNumber,
       createdAt: new Date().toISOString(),
-      storeName: 'KRUNNEX LUXE RETAIL',
+      storeName: 'DUPPATI',
       storeAddress: 'Road No. 36, Jubilee Hills, Hyderabad - 500033',
       storeGstin: '36AABCU9603R1ZM',
       storePhone: '+91 98765 43210',
@@ -212,7 +212,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
       liveBillUrl = `${baseOrigin}/bill?id=${invoiceNumber}&data=${enc}`;
     } catch {}
 
-    const msg = `✨ *KRUNNEX LUXE RETAIL* ✨
+    const msg = `✨ *DUPPATI* ✨
 📍 Road No. 36, Jubilee Hills, Hyderabad
 GSTIN: 36AABCU9603R1ZM
 ────────────────────────────
@@ -231,7 +231,7 @@ ${discount > 0 ? `🎉 *Special Discount:* -₹${discount.toLocaleString('en-IN'
 ${liveBillUrl}
 
 🌿 *Exchange Policy:* 7 days exchange with this digital bill.
-🙏 *Thank you for shopping with us! Visit again.*`;
+🙏 *Thank you for shopping at DUPPATI! Visit again.*`;
 
     const encoded = encodeURIComponent(msg);
     const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
@@ -269,7 +269,7 @@ ${liveBillUrl}
       ],
       amountPaid: total,
       balanceDue: 0,
-      outletName: 'KRUNNEX LUXE RETAIL',
+      outletName: 'DUPPATI',
       outletAddress: 'Boutique Textiles & Apparel • Flagship Store',
     };
 
@@ -292,7 +292,7 @@ ${liveBillUrl}
             `• ${i.quantity}x ${i.product.name} (${i.selectedVariant?.name || 'Standard'}) - ₹${i.lineTotal.toLocaleString('en-IN')}`
         )
         .join('\n');
-      const msg = `✨ *KRUNNEX LUXE RETAIL - OFFICIAL INVOICE* ✨
+      const msg = `✨ *DUPPATI - OFFICIAL INVOICE* ✨
 ────────────────────────────
 🧾 Invoice No: #${invoiceNumber}
 📅 Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -309,7 +309,7 @@ ${discount > 0 ? `🎉 Special Discount: -₹${discount.toLocaleString('en-IN')}
 ${liveBillUrl}
 
 🌿 *Exchange Policy:* 7 days exchange with this digital bill.
-🙏 Thank you for shopping at Krunnex Luxe Retail!`;
+🙏 Thank you for shopping at DUPPATI!`;
 
       const encoded = encodeURIComponent(msg);
       waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;

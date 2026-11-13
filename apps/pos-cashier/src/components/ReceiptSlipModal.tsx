@@ -190,45 +190,48 @@ Thank you for shopping with us! 🌿`;
           <div
             style={{
               background: '#ffffff',
-              padding: '20px 18px',
+              padding: '24px 20px',
               borderRadius: '8px',
-              border: '1px dashed #cbd5e1',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-              fontFamily: 'monospace',
-              fontSize: '0.84rem',
-              color: '#0f172a',
+              border: '2px solid #000000',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontSize: '0.92rem',
+              fontWeight: 700,
+              color: '#000000',
               lineHeight: 1.4,
             }}
           >
             {/* Store Header */}
-            <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-              <div style={{ fontSize: '1.15rem', fontWeight: 900, letterSpacing: '0.04em' }}>
-                {data.outletName || 'KRUNNEX LUXE RETAIL'}
+            <div style={{ textAlign: 'center', marginBottom: '14px' }}>
+              <div style={{ fontSize: '1.65rem', fontWeight: 950, letterSpacing: '0.08em', color: '#000000', textTransform: 'uppercase' }}>
+                {data.outletName || 'DUPPATI'}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                {data.outletAddress || 'Boutique Textiles & Apparel • Flagship Store'}
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#000000' }}>
+                {data.outletAddress || 'Textiles & Boutiques • Flagship Store'}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>GSTIN: 29ABCDE1234F1Z5</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#000000' }}>GSTIN: 36AABCU9603R1ZM</div>
               <div
                 style={{
-                  margin: '8px 0',
-                  padding: '4px 0',
-                  borderTop: '1px dashed #94a3b8',
-                  borderBottom: '1px dashed #94a3b8',
-                  fontWeight: 800,
-                  fontSize: '0.86rem',
+                  margin: '10px 0',
+                  padding: '5px 0',
+                  borderTop: '2px solid #000000',
+                  borderBottom: '2px solid #000000',
+                  fontWeight: 950,
+                  fontSize: '0.95rem',
+                  letterSpacing: '0.04em',
+                  color: '#000000',
                 }}
               >
-                {isPaid ? 'TAX INVOICE & RECEIPT' : 'BILL ESTIMATE (UNPAID)'}
+                {isPaid ? 'TAX INVOICE & CASH MEMO' : 'BILL ESTIMATE (UNPAID)'}
               </div>
             </div>
 
             {/* Meta Table */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#475569', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 800, color: '#000000', marginBottom: '4px' }}>
               <span>Invoice: <strong>#{data.invoiceNumber || data.orderNumber}</strong></span>
               <span>{dateFormatted}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#475569', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 800, color: '#000000', marginBottom: '10px' }}>
               <span>Counter: <strong>#01</strong> (JD)</span>
               <span>{timeFormatted}</span>
             </div>
@@ -238,11 +241,12 @@ Thank you for shopping with us! 🌿`;
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr auto',
-                padding: '4px 0',
-                borderTop: '1px solid #0f172a',
-                borderBottom: '1px solid #0f172a',
-                fontWeight: 800,
-                fontSize: '0.76rem',
+                padding: '5px 0',
+                borderTop: '2px solid #000000',
+                borderBottom: '2px solid #000000',
+                fontWeight: 950,
+                fontSize: '0.85rem',
+                color: '#000000',
               }}
             >
               <span>ITEM / DESCRIPTION</span>
@@ -250,20 +254,20 @@ Thank you for shopping with us! 🌿`;
             </div>
 
             {/* Items List */}
-            <div style={{ margin: '8px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ margin: '10px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.items.map((it, idx) => (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px' }}>
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', borderBottom: '1px dotted #cbd5e1', paddingBottom: '6px' }}>
                   <div>
-                    <div style={{ fontWeight: 700 }}>
-                      {it.quantity}x {it.name}
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#000000' }}>
+                      <span style={{ fontWeight: 950 }}>{it.quantity}x</span> {it.name}
                     </div>
                     {it.variantName && (
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                        Size: {it.variantName}
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
+                        • {it.variantName}
                       </div>
                     )}
                   </div>
-                  <div style={{ textAlign: 'right', fontWeight: 700 }}>
+                  <div style={{ textAlign: 'right', fontWeight: 950, fontSize: '0.95rem', color: '#000000' }}>
                     ₹{it.lineTotal.toFixed(2)}
                   </div>
                 </div>
@@ -271,17 +275,21 @@ Thank you for shopping with us! 🌿`;
             </div>
 
             {/* Totals Section */}
-            <div style={{ borderTop: '1px dashed #94a3b8', paddingTop: '8px', marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+            <div style={{ borderTop: '2px solid #000000', paddingTop: '10px', marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', fontWeight: 800, color: '#000000' }}>
                 <span>Subtotal (Taxable):</span>
                 <span>₹{data.subtotal.toFixed(2)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                <span>GST (5% Textile):</span>
-                <span>₹{data.taxAmount.toFixed(2)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', fontWeight: 800, color: '#000000' }}>
+                <span>CGST (2.5%):</span>
+                <span>₹{(data.taxAmount / 2).toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', fontWeight: 800, color: '#000000' }}>
+                <span>SGST (2.5%):</span>
+                <span>₹{(data.taxAmount / 2).toFixed(2)}</span>
               </div>
               {data.discountAmount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#059669', fontWeight: 700 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', color: '#000000', fontWeight: 900 }}>
                   <span>Customer Savings:</span>
                   <span>-₹{data.discountAmount.toFixed(2)}</span>
                 </div>
@@ -290,18 +298,19 @@ Thank you for shopping with us! 🌿`;
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  fontSize: '1rem',
-                  fontWeight: 900,
-                  borderTop: '1.5px solid #0f172a',
-                  borderBottom: '1.5px solid #0f172a',
-                  padding: '6px 0',
-                  margin: '6px 0',
+                  fontSize: '1.2rem',
+                  fontWeight: 950,
+                  borderTop: '2.5px solid #000000',
+                  borderBottom: '2.5px solid #000000',
+                  padding: '7px 0',
+                  margin: '8px 0',
+                  color: '#000000',
                 }}
               >
                 <span>TOTAL PAID:</span>
                 <span>₹{data.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#475569' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 800, color: '#000000' }}>
                 <span>Paid via:</span>
                 <strong>{data.payments[0]?.method || 'UPI'}</strong>
               </div>
@@ -313,10 +322,10 @@ Thank you for shopping with us! 🌿`;
                 textAlign: 'center',
                 margin: '14px 0 10px',
                 padding: '6px',
-                border: '1.5px solid #059669',
-                color: '#059669',
-                fontWeight: 900,
-                fontSize: '0.85rem',
+                border: '2.5px solid #000000',
+                color: '#000000',
+                fontWeight: 950,
+                fontSize: '0.92rem',
                 letterSpacing: '0.08em',
                 borderRadius: '4px',
               }}
@@ -325,9 +334,9 @@ Thank you for shopping with us! 🌿`;
             </div>
 
             {/* Footer Message */}
-            <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#64748b', marginTop: '10px' }}>
-              <div>Thank you for shopping at Krunnex Luxe Retail!</div>
-              <div>7 Days Exchange with this Digital Invoice</div>
+            <div style={{ textAlign: 'center', fontSize: '0.78rem', fontWeight: 700, color: '#000000', marginTop: '12px', lineHeight: 1.4 }}>
+              <div>Thank you for shopping at DUPPATI!</div>
+              <div>🌿 7 Days Return / Size Exchange with this Digital Invoice</div>
             </div>
           </div>
         </div>

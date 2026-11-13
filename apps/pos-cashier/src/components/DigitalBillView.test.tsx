@@ -6,7 +6,7 @@ describe('DigitalBillView Component (Mobile Digital Tax Invoice)', () => {
   const mockBill: DigitalBillData = {
     invoiceNumber: 'INV-2026-9999',
     createdAt: new Date().toISOString(),
-    storeName: 'KRUNNEX LUXE RETAIL',
+    storeName: 'DUPPATI',
     storeAddress: 'Road No. 36, Jubilee Hills, Hyderabad',
     storeGstin: '36AABCU9603R1ZM',
     storePhone: '+91 98765 43210',
@@ -32,7 +32,7 @@ describe('DigitalBillView Component (Mobile Digital Tax Invoice)', () => {
   it('renders store branding, customer name, and item details accurately', () => {
     render(<DigitalBillView initialData={mockBill} />);
 
-    expect(screen.getByText(/KRUNNEX LUXE RETAIL/i)).toBeInTheDocument();
+    expect(screen.getByText(/DUPPATI/i)).toBeInTheDocument();
     expect(screen.getAllByText(/INV-2026-9999/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Ananya Sharma/i)).toBeInTheDocument();
     expect(screen.getByText(/Pure Mulberry Silk Saree/i)).toBeInTheDocument();

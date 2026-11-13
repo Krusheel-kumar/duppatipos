@@ -63,7 +63,7 @@ export const RetailCheckoutModal: React.FC<RetailCheckoutModalProps> = ({
       invoiceNumber,
       orderNumber: invoiceNumber,
       createdAt: new Date().toISOString(),
-      storeName: 'KRUNNEX LUXE RETAIL',
+      storeName: 'DUPPATI',
       storeAddress: 'Road No. 36, Jubilee Hills, Hyderabad - 500033',
       storeGstin: '36AABCU9603R1ZM',
       storePhone: '+91 98765 43210',
@@ -159,7 +159,7 @@ export const RetailCheckoutModal: React.FC<RetailCheckoutModalProps> = ({
       ],
       amountPaid: totalAmount,
       balanceDue: 0,
-      outletName: 'KRUNNEX LUXE RETAIL',
+      outletName: 'DUPPATI',
       outletAddress: 'Boutique Textiles & Apparel • Flagship Store',
     };
     setReceiptSlipData(billData);
@@ -179,7 +179,7 @@ export const RetailCheckoutModal: React.FC<RetailCheckoutModalProps> = ({
       )
       .join('\n');
 
-    const msg = `✨ *KRUNNEX LUXE RETAIL* ✨
+    const msg = `✨ *DUPPATI* ✨
 📍 Road No. 36, Jubilee Hills, Hyderabad
 GSTIN: 36AABCU9603R1ZM
 ────────────────────────────

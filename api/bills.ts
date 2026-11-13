@@ -35,7 +35,7 @@ export default async function handler(req: any, res: any) {
         .map((it: any) => `• ${it.quantity}x ${it.name} (${it.variantName || 'Standard'}) - ₹${Number(it.lineTotal || 0).toFixed(2)}`)
         .join('\n');
 
-      const whatsappText = `✨ *${billData.storeName || 'KRUNNEX LUXE RETAIL'}* ✨\n` +
+      const whatsappText = `✨ *${billData.storeName || 'DUPPATI'}* ✨\n` +
         `📍 Road No. 36, Jubilee Hills, Hyderabad\n` +
         `GSTIN: 36AABCU9603R1ZM\n` +
         `────────────────────────────\n` +

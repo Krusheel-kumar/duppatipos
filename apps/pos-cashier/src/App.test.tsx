@@ -62,9 +62,8 @@ describe('Single-Store Textile Retail POS', () => {
 
     render(<App />);
 
-    // Brand title & subtitle
-    expect(screen.getByText('KRUNNEX LUXE RETAIL')).toBeInTheDocument();
-    expect(screen.getByText(/Textile & Boutique Flagship/i)).toBeInTheDocument();
+    // Brand title
+    expect(screen.getByText('KRUNNEX')).toBeInTheDocument();
 
     // Retail action buttons in header / sidebar
     expect(screen.getAllByText('Camera Scan')[0]).toBeInTheDocument();

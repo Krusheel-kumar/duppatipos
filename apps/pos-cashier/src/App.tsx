@@ -1182,8 +1182,7 @@ export function App() {
           </div>
 
           <div className="brand-text-block">
-            <div className="brand-main-title">KRUNNEX LUXE RETAIL</div>
-            <div className="brand-subtitle">Textile &amp; Boutique Flagship</div>
+            <div className="brand-main-title" style={{ fontSize: '1.25rem', fontWeight: 900, letterSpacing: '0.04em' }}>KRUNNEX</div>
           </div>
         </div>
 

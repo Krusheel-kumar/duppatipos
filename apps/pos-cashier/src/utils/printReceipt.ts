@@ -307,12 +307,12 @@ export async function printCustomerBill(
   const itemsHtml = data.items
     .map(
       (item) => `
-      <tr>
-        <td style="padding: 4px 0; vertical-align: top;">
-          ${item.quantity}x ${item.name}
-          ${item.variantName ? `<span style="font-size: 11px; color: #555;"> (${item.variantName})</span>` : ''}
+      <tr style="border-bottom: 1px dotted #000;">
+        <td style="padding: 6px 0; vertical-align: top; font-weight: 800; font-size: 14.5px; color: #000;">
+          <span style="font-weight: 950; font-size: 15px;">${item.quantity}x</span> ${item.name}
+          ${item.variantName ? `<div style="font-size: 12.5px; font-weight: 700; color: #000;">• ${item.variantName}</div>` : ''}
         </td>
-        <td style="text-align: right; padding: 4px 0; vertical-align: top; white-space: nowrap;">
+        <td style="text-align: right; padding: 6px 0; vertical-align: top; white-space: nowrap; font-weight: 950; font-size: 15px; color: #000;">
           ₹${item.lineTotal.toFixed(2)}
         </td>
       </tr>
@@ -324,14 +324,14 @@ export async function printCustomerBill(
     ? data.payments
         .map(
           (p) => `
-        <tr>
-          <td style="padding: 2px 0;">Paid via ${p.method}${p.transactionRef ? ` (${p.transactionRef})` : ''}:</td>
-          <td style="text-align: right; padding: 2px 0;">₹${p.amount.toFixed(2)}</td>
+        <tr style="font-weight: 800;">
+          <td style="padding: 3px 0; color: #000;">Paid via ${p.method}${p.transactionRef ? ` (${p.transactionRef})` : ''}:</td>
+          <td style="text-align: right; padding: 3px 0; font-weight: 950; color: #000;">₹${p.amount.toFixed(2)}</td>
         </tr>
       `
         )
         .join('')
-    : '<tr><td colspan="2" style="padding: 2px 0; color: #b45309;">No payment recorded yet</td></tr>';
+    : '<tr><td colspan="2" style="padding: 3px 0; font-weight: 800; color: #000;">No payment recorded yet</td></tr>';
 
   const billHtml = `
     <!DOCTYPE html>
@@ -347,72 +347,89 @@ export async function printCustomerBill(
             margin: 0;
             padding: 4mm 3mm 20mm 3mm;
             width: 74mm;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 13px;
-            color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 14.5px;
+            font-weight: 700;
+            color: #000000;
             line-height: 1.35;
           }
           .center { text-align: center; }
-          .bold { font-weight: bold; }
-          .outlet-name { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
-          .outlet-sub { font-size: 12px; color: #444; margin-bottom: 6px; }
-          .bill-title {
-            font-size: 14px;
-            font-weight: bold;
-            border-top: 1px dashed #000;
-            border-bottom: 1px dashed #000;
-            padding: 4px 0;
-            margin: 6px 0;
+          .bold { font-weight: 900; }
+          .outlet-name {
+            font-size: 28px;
+            font-weight: 950;
+            letter-spacing: 0.08em;
+            color: #000000;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            line-height: 1.1;
           }
-          .divider { border-top: 1px dashed #000; margin: 8px 0; }
-          .double-divider { border-top: 2px solid #000; margin: 8px 0; }
-          table { width: 100%; border-collapse: collapse; }
-          .totals-table td { padding: 3px 0; }
+          .outlet-sub {
+            font-size: 13px;
+            font-weight: 800;
+            color: #000000;
+            margin-bottom: 4px;
+          }
+          .bill-title {
+            font-size: 16px;
+            font-weight: 950;
+            color: #000000;
+            border-top: 2.5px solid #000000;
+            border-bottom: 2.5px solid #000000;
+            padding: 5px 0;
+            margin: 8px 0;
+            letter-spacing: 0.05em;
+          }
+          .divider { border-top: 2px dashed #000000; margin: 8px 0; }
+          .double-divider { border-top: 3px solid #000000; margin: 8px 0; }
+          table { width: 100%; border-collapse: collapse; color: #000000; }
+          .totals-table td { padding: 4px 0; font-size: 14.5px; font-weight: 800; }
           .grand-total {
-            font-size: 15px;
-            font-weight: 900;
-            border-top: 1px dashed #000;
-            border-bottom: 1px dashed #000;
+            font-size: 18.5px;
+            font-weight: 950;
+            color: #000000;
+            border-top: 2.5px solid #000000;
+            border-bottom: 2.5px solid #000000;
           }
           .balance-due {
-            font-size: 14px;
-            font-weight: bold;
+            font-size: 15px;
+            font-weight: 900;
           }
           .status-stamp {
             text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 4px;
-            margin: 10px 0;
-            border: 2px solid ${isPaid ? '#15803d' : '#b45309'};
-            color: ${isPaid ? '#15803d' : '#b45309'};
+            font-size: 16px;
+            font-weight: 950;
+            padding: 6px;
+            margin: 12px 0;
+            border: 3px solid #000000;
+            color: #000000;
+            letter-spacing: 0.05em;
           }
           .footer-msg {
             text-align: center;
-            font-size: 12px;
+            font-size: 13px;
+            font-weight: 800;
+            color: #000000;
             margin-top: 14px;
+            line-height: 1.4;
           }
         </style>
       </head>
       <body>
         <div class="center">
-          <div class="outlet-name">${data.outletName || "POP O' BOB"}</div>
-          <div class="outlet-sub">${data.outletAddress || 'Boba Tea & Cafe • Downtown Flagship'}</div>
-          <div>GSTIN: 29ABCDE1234F1Z5</div>
-          <div class="bill-title">${isPaid ? 'TAX INVOICE & RECEIPT' : 'BILL ESTIMATE (UNPAID)'}</div>
+          <div class="outlet-name">${data.outletName || "DUPPATI"}</div>
+          <div class="outlet-sub">${data.outletAddress || 'Textiles & Boutiques • Flagship Store'}</div>
+          <div style="font-size: 13px; font-weight: 800;">GSTIN: 36AABCU9603R1ZM</div>
+          <div class="bill-title">${isPaid ? 'TAX INVOICE & CASH MEMO' : 'BILL ESTIMATE (UNPAID)'}</div>
         </div>
 
-        <table style="margin: 6px 0; font-size: 12px;">
+        <table style="margin: 6px 0; font-size: 13.5px; font-weight: 800;">
           <tr>
-            <td><strong>Order:</strong> #${data.orderNumber}</td>
-            <td style="text-align: right;"><strong>Invoice:</strong> #${data.invoiceNumber || data.orderNumber}</td>
+            <td><strong>Invoice:</strong> #${data.invoiceNumber || data.orderNumber}</td>
+            <td style="text-align: right;"><strong>Date:</strong> ${new Date(data.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
           </tr>
           <tr>
-            <td><strong>Type:</strong> ${data.orderType.replace('_', ' ')}</td>
-            <td style="text-align: right;">${data.tableNumber ? `<strong>Table:</strong> ${data.tableNumber}` : ''}</td>
-          </tr>
-          <tr>
-            <td><strong>Date:</strong> ${new Date(data.createdAt).toLocaleDateString()}</td>
+            <td><strong>Counter:</strong> #01</td>
             <td style="text-align: right;"><strong>Time:</strong> ${new Date(data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
           </tr>
         </table>
@@ -421,9 +438,9 @@ export async function printCustomerBill(
 
         <table>
           <thead>
-            <tr style="border-bottom: 1px solid #000; text-align: left; font-size: 12px;">
-              <th style="padding-bottom: 4px;">ITEM</th>
-              <th style="text-align: right; padding-bottom: 4px;">AMOUNT</th>
+            <tr style="border-bottom: 2px solid #000; text-align: left; font-size: 13.5px; font-weight: 950;">
+              <th style="padding-bottom: 5px;">ITEM &amp; DETAILS</th>
+              <th style="text-align: right; padding-bottom: 5px;">AMOUNT</th>
             </tr>
           </thead>
           <tbody>
@@ -436,34 +453,34 @@ export async function printCustomerBill(
         <table class="totals-table">
           <tr>
             <td>Subtotal:</td>
-            <td style="text-align: right;">₹${data.subtotal.toFixed(2)}</td>
+            <td style="text-align: right; font-weight: 900;">₹${data.subtotal.toFixed(2)}</td>
           </tr>
           ${
             data.discountAmount > 0
               ? `
-            <tr style="color: #15803d;">
+            <tr>
               <td>Discount:</td>
-              <td style="text-align: right;">-₹${data.discountAmount.toFixed(2)}</td>
+              <td style="text-align: right; font-weight: 900;">-₹${data.discountAmount.toFixed(2)}</td>
             </tr>
           `
               : ''
           }
           <tr>
             <td>CGST (2.5%):</td>
-            <td style="text-align: right;">₹${(data.taxAmount / 2).toFixed(2)}</td>
+            <td style="text-align: right; font-weight: 900;">₹${(data.taxAmount / 2).toFixed(2)}</td>
           </tr>
           <tr>
             <td>SGST (2.5%):</td>
-            <td style="text-align: right;">₹${(data.taxAmount / 2).toFixed(2)}</td>
+            <td style="text-align: right; font-weight: 900;">₹${(data.taxAmount / 2).toFixed(2)}</td>
           </tr>
           <tr class="grand-total">
-            <td style="padding: 6px 0;">TOTAL BILL:</td>
-            <td style="text-align: right; padding: 6px 0;">₹${data.totalAmount.toFixed(2)}</td>
+            <td style="padding: 7px 0;">NET PAYABLE:</td>
+            <td style="text-align: right; padding: 7px 0;">₹${data.totalAmount.toFixed(2)}</td>
           </tr>
           ${paymentsHtml}
           <tr class="balance-due">
-            <td style="padding-top: 4px;">BALANCE DUE:</td>
-            <td style="text-align: right; padding-top: 4px; color: ${data.balanceDue > 0 ? '#b91c1c' : '#15803d'};">
+            <td style="padding-top: 5px;">BALANCE DUE:</td>
+            <td style="text-align: right; padding-top: 5px;">
               ₹${data.balanceDue.toFixed(2)}
             </td>
           </tr>
@@ -474,7 +491,8 @@ export async function printCustomerBill(
         </div>
 
         <div class="footer-msg">
-          <div>Thank you for dining with us!</div>
+          <div>Thank you for shopping at DUPPATI!</div>
+          <div>🌿 7 Days Return / Size Exchange with this bill.</div>
           <div>Please visit us again.</div>
         </div>
       </body>

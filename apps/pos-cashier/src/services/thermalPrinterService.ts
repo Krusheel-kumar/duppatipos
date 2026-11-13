@@ -183,11 +183,11 @@ export function buildCustomerBillESCPOS(data: CustomerBillPrintData, config = ge
     .align('center')
     .size(true, true)
     .bold(true)
-    .textLine(data.outletName || "POP O' BOB")
+    .textLine(data.outletName || "DUPPATI")
     .size(false, false)
     .bold(false)
-    .textLine(data.outletAddress || 'Boba Tea & Cafe - Downtown Flagship')
-    .textLine('GSTIN: 29ABCDE1234F1Z5')
+    .textLine(data.outletAddress || 'Textiles & Boutiques - Flagship Store')
+    .textLine('GSTIN: 36AABCU9603R1ZM')
     .feed(1)
     .bold(true)
     .textLine(isPaid ? '*** TAX INVOICE & RECEIPT ***' : '*** BILL ESTIMATE (UNPAID) ***')
@@ -247,8 +247,8 @@ export function buildCustomerBillESCPOS(data: CustomerBillPrintData, config = ge
     .textLine(isPaid ? '[ PAID IN FULL ]' : '[ PAYMENT PENDING ]')
     .bold(false)
     .feed(1)
-    .textLine('Thank you for dining with us!')
-    .textLine('Please visit us again.')
+    .textLine('Thank you for shopping at DUPPATI!')
+    .textLine('7 Days Exchange with this bill.')
     .feed(1);
 
   if (config.autoCut) {
